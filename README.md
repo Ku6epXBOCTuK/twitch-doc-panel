@@ -1,74 +1,76 @@
 # twitch-panel-bio
 
 Twitch Panel Extension: одна панель (318×496), внутри — несколько документов.
-Контент — Markdown из git (Gitea), хостинг — твой сервер за nginx. Без бэкендов, без GitHub, без ревью.
+Контент — **обычные .md файлы в отдельном репозитории** (GitHub, Gitea — любой хост
+из белого списка): расширение грузит их напрямую и рендерит само. Без бэкендов,
+без конвертации, без ревью.
+
+## Как это устроено
+
+```
+РЕПОЗИТОРИЙ КОНТЕНТА (отдельный)          РАСШИРЕНИЕ (этот репозиторий)
+  docs/*.md  +  index.json                 app/viewer.html + app/config.html
+      ↑ утилита составляет список              │
+      │                                        │ 1. из конфиг-сегмента берёт ссылку
+node builder/build.js <папка с md>             │    на index.json (хост из whitelist)
+                                               │ 2. грузит .md напрямую и рендерит
+```
+
+- `index.json` — список документов: `[{id, title, order, hidden, header, url}]`,
+  `url` — имя .md файла рядом с индексом.
+- Рендер: marked → мини-AST → рекурсивный компонент. Без `{@html}` и санитайзеров:
+  строки эскейпит Svelte, картинки только с хостов из белого списка, ссылки только
+  http(s) в новой вкладке, непонятные узлы пропускаются.
+- Ссылка на index.json задаётся в панели управления (config-вью) и хранится в
+  конфиг-сегменте канала — менять можно без пересборки.
+- Белый список хостов: `src/shared/content.js` → `ALLOWED_CONTENT_HOSTS`
+  (сейчас: `raw.githubusercontent.com`, `xboct-git.duckdns.org`).
 
 ## Структура
 
 ```
 src/viewer/                    вьювер: пейджер документов, тема Twitch
-src/config/                    панель управления (Creator Dashboard): порядок/скрытие
-src/shared/DocRenderer.svelte  рекурсивный рендерер JSON-AST (без {@html})
-builder/                       валидация MD по белому списку → JSON-AST, sharp-картинки
-content/docs/*.md              документы (front-matter: title обязателен, order/hidden/header)
-site/                          сборка контента (промежуточная)
-app/                           ИТОГ ДЛЯ ДЕПЛОЯ: viewer.html, config.html,
-                               index.json, docs/, img/ — контент лежит рядом с html
+src/config/                    панель управления: ссылка на index.json, порядок, скрытие
+src/shared/md.js               runtime-конвертация Markdown → мини-AST
+src/shared/DocRenderer.svelte  рекурсивный рендерер (без {@html})
+builder/build.js               утилита: генерирует index.json по папке с .md
+content/docs/*.md              пример репозитория контента
+app/                           итог для деплоя: viewer.html + config.html
+                               (в .gitignore — собирается `npm run build`, на сервер копируется вручную)
 ```
 
 ## Команды
 
 | Команда | Что делает |
 |---|---|
-| `npm run build:content` | контент: `content/` → `site/` |
-| `npm run build` | фронтенд + контент → `app/` (одна самодостаточная папка) |
+| `npm run build:index` | утилита: `content/docs/*.md` → `content/docs/index.json` |
+| `npm run build` | фронтенд → `app/` (viewer.html + config.html) |
 | `npm run dev` | dev-сервер :8080 (https, если в `certs/` есть mkcert-сертификат) |
 
-## Деплой
+## Репозиторий контента
 
-`app/` — самодостаточная папка: контент ищется рядом с html, никаких зашитых
-адресов и отдельных location не нужно. nginx — просто статика:
+- Папка с `.md` файлами. Front-matter: `title` (обязателен), `order` (число),
+  `hidden` (bool), `header` (имя файла заголовочной картинки рядом, без обработки).
+- Сгенерировать индекс: `node builder/build.js <папка с .md>` → `index.json` рядом с файлами.
+  Утилита валидирует тем же парсером, что и панель: html/таблицы/код-блоки —
+  предупреждение, в панели такие блоки пропускаются.
+- Поддерживаемый markdown: заголовки, абзацы, **жирный**/*курсив*/~~зачёркнутый~~,
+  `код`, списки (включая GFM-чекбоксы), ссылки, картинки, цитаты, `---`.
+- Картинки внутри .md: относительные пути резолвятся от самого файла .md.
 
-```nginx
-location /panel/ {
-    alias /srv/twitch-panel/app/;
-}
-```
+## Деплой расширения
 
-Base URI в консоли Twitch = URL этой папки со слэшем на конце
-(`https://xboct-git.duckdns.org/panel/`), Panel Viewer Path `viewer.html`,
-Panel Config Path `config.html`. Контент same-origin — CORS не нужен вовсе.
-
-Обновление: `npm run build:content && npm run build` → содержимое `app/` — на сервер
-в ту же папку (git push/pull или копированием).
-
-## Контент
-
-- Документы: `content/docs/<id>.md`. Front-matter: `title` (обязателен), `order` (число),
-  `hidden` (bool), `header` (путь к заголовочной картинке от `content/assets/`).
-- Картинки в тексте: `![](картинка.png)` — путь относительно .md; билдер жмёт в WebP
-  (макс. ширина 640) и пишет относительный путь. Битые пути = ошибка сборки.
-- Заголовочные картинки режутся в 636×340 (318×170 @2x, object-fit: cover).
-- Белый список: заголовки, абзацы, **жирный**/*курсив*/~~зачёркнутый~~, списки (включая
-  GFM-чекбоксы), ссылки (только http/https), картинки, цитаты, `---`. Всё прочее
-  (HTML, код-блоки, таблицы) — ошибка сборки с файлом:строкой.
+`app/` (два html) — в папку за nginx; Base URI в консоли Twitch = URL этой папки
+со слэшем на конце. Контент расширению не нужен — он грузится с репозитория контента.
 
 ## Тест на своём канале (Local Test)
 
-1. `npm run build:content && npm run dev` — окно держать открытым; строка `Local:`
-   покажет адрес и схему (с mkcert-сертификатом в `certs/` сервер поднимется по https).
+1. `npm run dev` — окно держать открытым; строка `Local:` покажет адрес и схему
+   (mkcert-сертификат в `certs/` уже установлен — сервер поднимется по https).
 2. В консоли Twitch: Base URI = адрес из `Local:` со слэшем на конце,
    Panel Viewer Path `viewer.html`, Panel Config Path `config.html`.
-3. Extension Manager → Activate на своём канале. Панель управления — Configure
-   у расширения в Extension Manager (порядок, скрытие документов).
+3. Extension Manager → Activate. Панель управления — Configure у расширения:
+   вписать ссылку на index.json → Загрузить список → порядок/скрытие → Сохранить.
 
-Если в DevTools на config.html «Provisional headers are shown» / «CORS error» —
-сервер не запущен, либо Base URI не совпадает со строкой `Local:` (схема/порт).
-
-## Мелочи
-
-- Pop-out отключить нельзя — кнопка UI Twitch.
-- Zip-загрузка в Twitch = Hosted Test (виден только тестовым аккаунтам); для зрителей
-  нужно Review → Released. Контент в zip в любом случае не попадает — он с твоего сервера.
-- Если Twitch заблокирует fetch контента по CSP — добавь origin папки в connect-src
-  allowlist расширения (обычно same-origin и так разрешён).
+Если config-вью не может загрузить index.json по CSP — добавь хост контента в
+connect-src allowlist расширения. Pop-out отключить нельзя — кнопка UI Twitch.

@@ -1,15 +1,20 @@
 <script>
-  // Рекурсивный рендерер мини-AST из билдера. Никакого {@html}: строка = текст
+  // Рекурсивный рендерер мини-AST. Никакого {@html}: строка = текст
   // (эскейпит Svelte), узел = [tag, ...rest]. Неизвестное — пропускаем с warning.
-  // imgOrigin — единственный хост, с которого разрешены картинки (защита от подмены JSON).
-  let { nodes = [], imgOrigin = '' } = $props();
+  // Картинки — только с хостов из белого списка (даже если md подменён).
+  import { ALLOWED_CONTENT_HOSTS } from './content.js';
+
+  let { nodes = [] } = $props();
 
   const LINK_RE = /^https?:\/\//i;
 
   function safeImg(src) {
-    return (
-      typeof src === 'string' && imgOrigin && src.startsWith(imgOrigin) ? src : null
-    );
+    if (typeof src !== 'string' || !/^https:\/\//i.test(src)) return null;
+    try {
+      return ALLOWED_CONTENT_HOSTS.includes(new URL(src).hostname) ? src : null;
+    } catch {
+      return null;
+    }
   }
 
   function safeLink(href) {

@@ -1,23 +1,41 @@
 <script>
-  import { isTwitch, getBroadcasterConfig, saveBroadcasterConfig } from '../shared/twitch.js';
-  import { INDEX_URL } from '../shared/content.js';
+  import { isTwitch, onBroadcasterConfig, saveBroadcasterConfig } from '../shared/twitch.js';
+  import { isAllowedUrl, ALLOWED_CONTENT_HOSTS } from '../shared/content.js';
 
-  let list = $state([]); // рабочая копия: { id, title, hidden }
-  let status = $state('loading'); // loading | ready | error
+  // Конфиг приходит асинхронно — заполняем поле, когда доедет.
+  let savedCfg = $state({});
+
+  let indexUrl = $state('');
+  let list = $state([]);
+  let status = $state('idle'); // idle | loading | ready | error
   let error = $state('');
-  let saved = $state(false);
+  let savedOk = $state(false);
 
-  const savedCfg = getBroadcasterConfig();
+  onBroadcasterConfig((c) => {
+    savedCfg = c ?? {};
+    if (!indexUrl && c?.indexUrl) indexUrl = c.indexUrl;
+  });
 
   async function load() {
-    status = 'loading';
+    savedOk = false;
     error = '';
+    const url = indexUrl.trim();
+    if (!url) {
+      error = 'Укажи ссылку на index.json';
+      return;
+    }
+    if (!isAllowedUrl(url)) {
+      error = `Хост не в белом списке (разрешены: ${ALLOWED_CONTENT_HOSTS.join(', ')})`;
+      return;
+    }
+    status = 'loading';
     try {
-      const res = await fetch(INDEX_URL);
-      if (!res.ok) throw new Error(`index.json: HTTP ${res.status}`);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const index = await res.json();
-      const hidden = new Set(savedCfg?.hidden ?? []);
-      const order = new Map((savedCfg?.order ?? []).map((id, i) => [id, i]));
+      if (!Array.isArray(index)) throw new Error('ожидался массив документов');
+      const hidden = new Set(savedCfg.hidden ?? []);
+      const order = new Map((savedCfg.order ?? []).map((id, i) => [id, i]));
       list = index
         .filter((d) => !d.hidden)
         .map((d) => ({ id: d.id, title: d.title, hidden: hidden.has(d.id) }))
@@ -30,8 +48,6 @@
     }
   }
 
-  load();
-
   function move(i, dir) {
     const j = i + dir;
     if (j < 0 || j >= list.length) return;
@@ -39,8 +55,9 @@
   }
 
   function save() {
-    saved = saveBroadcasterConfig({
+    savedOk = saveBroadcasterConfig({
       v: 1,
+      indexUrl: indexUrl.trim(),
       hidden: list.filter((d) => d.hidden).map((d) => d.id),
       order: list.map((d) => d.id),
     });
@@ -48,16 +65,25 @@
 </script>
 
 <div class="config">
-  <h1>Документы панели</h1>
-  <p class="muted">Порядок и видимость для этого канала. Содержимое документов правится в git-репозитории.</p>
+  <h1>Панель управления</h1>
+
+  <label class="field">
+    <span class="label">Ссылка на index.json</span>
+    <input
+      type="text"
+      bind:value={indexUrl}
+      placeholder="https://…/index.json"
+      onkeydown={(e) => e.key === 'Enter' && load()}
+    />
+  </label>
+  <p class="muted hint">Белый список хостов: {ALLOWED_CONTENT_HOSTS.join(', ')}</p>
+  <button onclick={load}>Загрузить список</button>
 
   {#if status === 'loading'}
     <p class="muted">Загрузка…</p>
   {:else if status === 'error'}
-    <p>Не удалось загрузить index.json.</p>
-    <p class="muted">{error}</p>
-    <button onclick={load}>Повторить</button>
-  {:else}
+    <p class="err">{error}</p>
+  {:else if status === 'ready'}
     {#each list as doc, i (doc.id)}
       <div class="row">
         <span class="title">{doc.title}</span>
@@ -71,17 +97,19 @@
         </span>
       </div>
     {:else}
-      <p class="muted">Список пуст: соберите контент билдером и сделайте push.</p>
+      <p class="muted">Список пуст: добавь .md файлы в репозиторий контента.</p>
     {/each}
 
     <div class="save">
       <button onclick={save}>Сохранить</button>
-      {#if saved}
+      {#if savedOk}
         <span class="ok">Сохранено</span>
       {:else if !isTwitch}
         <span class="muted">Локальный режим: сохранение доступно только в Creator Dashboard.</span>
       {/if}
     </div>
+  {:else if error}
+    <p class="err">{error}</p>
   {/if}
 </div>
 
@@ -101,6 +129,49 @@
   .muted {
     color: #adadb8;
   }
+  .err {
+    color: #ff8a8a;
+  }
+  .ok {
+    color: #00f593;
+  }
+  .field {
+    display: block;
+    margin: 10px 0 4px;
+  }
+  .label {
+    display: block;
+    font-size: 0.85em;
+    color: #adadb8;
+    margin-bottom: 4px;
+  }
+  input[type='text'] {
+    width: 100%;
+    box-sizing: border-box;
+    background: #1f1f23;
+    color: #efeff1;
+    border: 1px solid #3a3a3d;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.95em;
+  }
+  .hint {
+    font-size: 0.8em;
+    margin: 4px 0 10px;
+  }
+  button {
+    background: #3a3a3d;
+    color: #efeff1;
+    border: 0;
+    border-radius: 6px;
+    height: 30px;
+    min-width: 28px;
+    padding: 0 12px;
+    cursor: pointer;
+  }
+  button:hover {
+    filter: brightness(1.2);
+  }
   .row {
     display: flex;
     justify-content: space-between;
@@ -109,7 +180,7 @@
     padding: 8px 10px;
     border: 1px solid #3a3a3d;
     border-radius: 6px;
-    margin-bottom: 6px;
+    margin-top: 6px;
   }
   .controls {
     display: flex;
@@ -117,21 +188,9 @@
     gap: 6px;
     white-space: nowrap;
   }
-  label {
+  .controls label {
     font-size: 0.85em;
     color: #adadb8;
-  }
-  button {
-    background: #3a3a3d;
-    color: #efeff1;
-    border: 0;
-    border-radius: 6px;
-    height: 28px;
-    min-width: 28px;
-    cursor: pointer;
-  }
-  button:hover {
-    filter: brightness(1.2);
   }
   .save {
     margin-top: 12px;
@@ -142,8 +201,5 @@
   .save button {
     min-width: 100px;
     height: 32px;
-  }
-  .ok {
-    color: #00f593;
   }
 </style>

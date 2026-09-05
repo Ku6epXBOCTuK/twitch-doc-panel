@@ -7,10 +7,33 @@ export const isTwitch = Boolean(ext);
 
 const contextListeners = [];
 const authListeners = [];
+const configListeners = [];
+let broadcasterConfig = null;
+
+function parseConfig() {
+  const raw = ext?.configuration?.broadcaster?.content;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    console.warn('twitch.js: broadcaster config не парсится как JSON');
+    return null;
+  }
+}
+
+function notifyConfig() {
+  broadcasterConfig = parseConfig();
+  configListeners.forEach((cb) => cb(broadcasterConfig));
+}
 
 if (ext) {
   ext.onContext((ctx) => contextListeners.forEach((cb) => cb(ctx)));
   ext.onAuthorized((auth) => authListeners.forEach((cb) => cb(auth)));
+  // Конфиг приходит асинхронно: onChanged ловит и первое значение при бутстрапе,
+  // и последующие изменения (например, сохранение в config-вью).
+  ext.configuration?.onChanged?.(notifyConfig);
+  // Если значение уже лежит синхронно — уведомляем сразу.
+  if (ext.configuration?.broadcaster?.content) notifyConfig();
 }
 
 export function onContext(cb) {
@@ -22,17 +45,20 @@ export function onAuthorized(cb) {
   authListeners.push(cb);
 }
 
-// Сегмент broadcaster — публичные настройки канала (JSON или null).
-export function getBroadcasterConfig() {
-  if (!ext) return null;
-  const raw = ext.configuration?.broadcaster?.content;
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    console.warn('twitch.js: broadcaster config не парсится как JSON');
-    return null;
+// Подписка на конфиг канала (null, пока не пришёл или вне Twitch). Колбэк зовётся
+// сразу, если значение уже доступно.
+export function onBroadcasterConfig(cb) {
+  configListeners.push(cb);
+  if (ext) {
+    if (broadcasterConfig !== null) cb(broadcasterConfig);
+  } else {
+    cb(null);
   }
+}
+
+// Разовое чтение текущего значения (может быть null до бутстрапа).
+export function getBroadcasterConfig() {
+  return broadcasterConfig ?? parseConfig();
 }
 
 // Разрешено вызывать только из config-вью от имени стримера.

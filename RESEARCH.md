@@ -371,3 +371,17 @@ xboct-git.duckdns.org (Gitea + nginx, TLS валидный). Проверено 
 Финально: контент копится в app/ РЯДОМ с html (index.json, docs/, img/), URL-ы
 относительные от страницы; contentBase/config.json выпилены полностью. Base URI =
 папка app/ (одна nginx-location), контент same-origin → CORS не нужен вовсе.
+
+### 10.12 Итерация 8 — сырые .md, отдельный репо контента, whitelist
+
+Запрос: пользователи не будут конвертировать md; контент — отдельный репозиторий;
+ссылка на index.json настраивается в панели; whitelist хостов.
+- Вьювер грузит **сырые .md** и парсит в рантайме: marked → мини-AST (тот же формат,
+  DocRenderer без изменений — по-прежнему без {@html} и санитайзеров; html/таблицы/
+  код-блоки пропускаются с warning). Front-matter срезается перед парсингом.
+- `builder/build.js` → только генератор index.json (gray-matter + та же валидация);
+  remark/unified/sharp выпилены из зависимостей (остались gray-matter, marked).
+- Контент-репо отдельный: папка .md + сгенерированный index.json. Ссылка на индекс
+  хранится в broadcaster-сегменте ({v:1, indexUrl, hidden, order}), задаётся в config-вью.
+- Whitelist хостов: ALLOWED_CONTENT_HOSTS в src/shared/content.js — index.json,
+  .md и картинки грузятся только с этих хостов; ссылки — любые http(s) в новой вкладке.

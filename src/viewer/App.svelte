@@ -1,6 +1,7 @@
 <script>
-  import { onContext, getBroadcasterConfig } from '../shared/twitch.js';
-  import { INDEX_URL, CONTENT_ROOT, CONTENT_ORIGIN } from '../shared/content.js';
+  import { onContext, onBroadcasterConfig } from '../shared/twitch.js';
+  import { isAllowedUrl, DEFAULT_INDEX_URL } from '../shared/content.js';
+  import { mdToBlocks } from '../shared/md.js';
   import DocRenderer from '../shared/DocRenderer.svelte';
 
   let theme = $state('dark');
@@ -8,26 +9,59 @@
     if (ctx.theme) theme = ctx.theme;
   });
 
+  // Конфиг канала: {v:1, indexUrl, hidden:[], order:[]} — приходит асинхронно
+  // и меняется при сохранении в config-вью; подписка ловит оба случая.
+  let cfg = null;
+  let lastCfgJson = '';
+
   let docs = $state([]);
   let current = $state(0);
-  let status = $state('loading'); // loading | ready | empty | error
+  let status = $state('loading'); // loading|ready|empty|error|need-config|bad-host
   let loadError = $state('');
   let doc = $state(null);
   let docError = $state('');
 
-  // Per-channel исключения из конфиг-сегмента: скрыть/перепорядочить.
-  const overrides = getBroadcasterConfig();
+  function resolveIndexUrl() {
+    if (cfg?.indexUrl) {
+      if (!isAllowedUrl(cfg.indexUrl)) {
+        loadError = cfg.indexUrl;
+        status = 'bad-host';
+        return null;
+      }
+      return cfg.indexUrl;
+    }
+    if (DEFAULT_INDEX_URL && isAllowedUrl(DEFAULT_INDEX_URL)) return DEFAULT_INDEX_URL;
+    status = 'need-config';
+    return null;
+  }
 
-  async function loadIndex() {
+  onBroadcasterConfig((c) => {
+    const json = JSON.stringify(c ?? null);
+    if (json === lastCfgJson) return;
+    lastCfgJson = json;
+    cfg = c;
+    const indexUrl = resolveIndexUrl();
+    if (indexUrl) loadIndex(indexUrl);
+  });
+
+  async function loadIndex(indexUrl) {
     status = 'loading';
     loadError = '';
     try {
-      const res = await fetch(INDEX_URL);
+      const res = await fetch(indexUrl);
       if (!res.ok) throw new Error(`index.json: HTTP ${res.status}`);
+      // res.url учитывает редиректы: относительные пути — от фактического адреса индекса
+      const base = new URL('.', res.url).href;
       let list = await res.json();
-      if (overrides) {
-        const hidden = new Set(overrides.hidden ?? []);
-        const order = new Map((overrides.order ?? []).map((id, i) => [id, i]));
+      if (!Array.isArray(list)) throw new Error('index.json: ожидался массив');
+      list = list.map((d) => ({
+        ...d,
+        url: new URL(d.url, base).href,
+        header: d.header ? new URL(d.header, base).href : null,
+      }));
+      if (cfg) {
+        const hidden = new Set(cfg.hidden ?? []);
+        const order = new Map((cfg.order ?? []).map((id, i) => [id, i]));
         list = list.filter((d) => !hidden.has(d.id));
         list.sort((a, b) => (order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity));
       }
@@ -45,15 +79,18 @@
     }
   }
 
-  // Относительные пути картинок (img/...) резолвим от корня контента —
-  // заодно защита: подменённый JSON не сможет указать чужой хост (см. DocRenderer).
-  function absolutize(n) {
+  // Относительные пути картинок/ссылок из .md резолвим от адреса самого файла.
+  function absolutize(n, base) {
     if (typeof n === 'string' || !Array.isArray(n)) return n;
     const [tag, ...rest] = n;
-    if (tag === 'img' && typeof rest[0] === 'string' && !/^https?:\/\//i.test(rest[0])) {
-      return ['img', new URL(rest[0], CONTENT_ROOT).href, ...rest.slice(1)];
+    if (
+      (tag === 'img' || tag === 'a') &&
+      typeof rest[0] === 'string' &&
+      !/^https?:\/\//i.test(rest[0])
+    ) {
+      return [tag, new URL(rest[0], base).href, ...rest.slice(1)];
     }
-    return [tag, ...rest.map(absolutize)];
+    return [tag, ...rest.map((x) => absolutize(x, base))];
   }
 
   async function loadDoc(i) {
@@ -61,10 +98,11 @@
     doc = null;
     docError = '';
     try {
-      const res = await fetch(new URL(docs[i].url, CONTENT_ROOT).href);
+      const res = await fetch(docs[i].url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      doc = { ...json, blocks: json.blocks.map(absolutize) };
+      const docBase = new URL('.', res.url).href;
+      const blocks = mdToBlocks(await res.text()).map((b) => absolutize(b, docBase));
+      doc = { title: docs[i].title, blocks };
     } catch (e) {
       console.error(e);
       docError = String(e.message ?? e);
@@ -73,13 +111,19 @@
 
   const prev = () => current > 0 && loadDoc(current - 1);
   const next = () => current < docs.length - 1 && loadDoc(current + 1);
-
-  loadIndex();
 </script>
 
 <div class="panel" data-theme={theme}>
   {#if status === 'loading'}
     <p class="muted center">Загрузка…</p>
+  {:else if status === 'need-config'}
+    <p class="center">Ссылка на контент не задана.</p>
+    <p class="muted center">
+      Открой панель управления расширением и укажи ссылку на index.json.
+    </p>
+  {:else if status === 'bad-host'}
+    <p class="center">Хост контента не в белом списке.</p>
+    <p class="muted center">{loadError}</p>
   {:else if status === 'error'}
     <p class="center">Не удалось загрузить документы.</p>
     <p class="muted center">{loadError}</p>
@@ -88,14 +132,14 @@
     <p class="muted center">Документов пока нет.</p>
   {:else}
     {#if docs[current]?.header}
-      <img class="header" src={new URL(docs[current].header, CONTENT_ROOT).href} alt="" />
+      <img class="header" src={docs[current].header} alt="" />
     {/if}
     <main>
       <h1 class="title">{doc?.title ?? docs[current].title}</h1>
       {#if docError}
         <p class="muted">Не удалось загрузить документ ({docError}).</p>
       {:else if doc}
-        <DocRenderer nodes={doc.blocks} imgOrigin={CONTENT_ORIGIN} />
+        <DocRenderer nodes={doc.blocks} />
       {:else}
         <p class="muted">Загрузка…</p>
       {/if}

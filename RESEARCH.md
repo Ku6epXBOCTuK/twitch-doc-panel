@@ -325,3 +325,49 @@ mXSS закрыты, поддерживается активнее всех.
   контентные пуши доезжают до зрителей сами за ≤5 минут; сегмент — только исключения.
 - Реализован скелет: два single-file билда (viewer/config), вьювер с пейджером,
   конфиг-панель (скрыть/порядок), билдер (валидация + JSON-AST + sharp), sample-контент, CI.
+
+### 10.9 Итерация 5 — Gitea вместо GitHub, Local Test вместо zip
+
+GitHub-аккаунт suspended → хостинг контента переезжает на свой инстанс
+xboct-git.duckdns.org (Gitea + nginx, TLS валидный). Проверено curl-ом:
+
+- **raw Gitea непригоден для app-файлов**: viewer.html приходит как `text/plain` с
+  `Content-Security-Policy: default-src 'none'; sandbox` и `X-Frame-Options: SAMEORIGIN` —
+  скрипты в iframe не исполнятся, сам iframe не откроется.
+- **raw для JSON**: нет `Access-Control-Allow-Origin` (лечится `[cors]` в app.ini) и кэш
+  `Cache-Control: max-age=21600` (6 ч) — застаревание контента.
+
+Решение — статика мимо Gitea, напрямую через nginx (он уже стоит перед Gitea):
+
+- `location /panel/app/` → `app/` (viewer.html + config.html, Cache-Control: no-cache);
+- `location /panel/content/` → `site/` (+ `Access-Control-Allow-Origin: *`);
+- Gitea остаётся источником версий; деплой = `git pull` на сервере.
+- Билдер теперь пишет **относительные пути** (site/index.json → `docs/*.json`,
+  картинки → `img/*.webp`); вьювер резолвит их от `contentBase` из config.json,
+  allowlist картинок = origin контентного сервера.
+
+Путь в Twitch: **Local Test с Base URI на свой сервер** — без ревью и без zip.
+Загруженный zip переходит в Hosted Test, который виден только тестовым аккаунтам —
+для зрителей нужен Review → Released (и новое ревью на каждое обновление кода).
+Ограничение «видят только тестовые аккаунты» документировано именно для Hosted Test,
+для Local Test на своём канале его нет (проверить инкогнито после активации).
+
+### 10.10 Итерация 6 — http вместо сертификата + CORS для сапервизора
+
+- **Сертификат для Local Test не нужен**: docs официально описывают Local Test
+  как `http://localhost:8080` (пример Base URI в описании поля) — при условии
+  chrome://flags/#allow-insecure-localhost. mkcert — только альтернатива без флагов.
+  Dev-сервер переведён на HTTP, basic-ssl удалён. Прод-домен — по-прежнему HTTPS.
+- **«CORS error» на config.html/viewer.html от supervisor.js**: сапервизор Twitch
+  запрашивает документы расширения в CORS-режиме — dev-сервер обязан отдавать
+  `Access-Control-Allow-Origin` (добавлен devCors-middleware: ACAO + OPTIONS 204 +
+  `Access-Control-Allow-Private-Network: true` для запросов с twitch.tv на localhost).
+  Следствие для прод-nginx: ACAO нужен и на `/panel/app/`, не только на `/panel/content/`.
+
+### 10.11 Итерация 7 — деплой одной папкой
+
+Схема из двух location (/panel/app/ + /panel/content/) усложняла деплой, а на сервере
+в итоге оказался старый билд из dist/pkg (времён github-URL) — отсюда «грузит с github».
+Финально: контент копится в app/ РЯДОМ с html (index.json, docs/, img/), URL-ы
+относительные от страницы; contentBase/config.json выпилены полностью. Base URI =
+папка app/ (одна nginx-location), контент same-origin → CORS не нужен вовсе.

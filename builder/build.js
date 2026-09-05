@@ -7,17 +7,7 @@ import { optimizeImage, hashFile } from './images.js';
 
 const ROOT = process.cwd();
 const CONTENT = path.join(ROOT, 'content');
-const OUT = path.join(ROOT, 'out');
-
-const cfg = JSON.parse(await fs.readFile(path.join(ROOT, 'config.json'), 'utf8'));
-if (cfg.repo === 'USER/REPO') {
-  console.error('Заполните config.json: поле "repo" (например "ivanov/panel-content").');
-  process.exit(1);
-}
-
-// CONTENT_SHA задаёт CI; локально используем ветку (TTL кэша jsDelivr у ветки больше).
-const sha = process.env.CONTENT_SHA ?? cfg.branch;
-const CDN = `https://cdn.jsdelivr.net/gh/${cfg.repo}@${sha}`;
+const OUT = path.join(ROOT, 'site');
 
 const errors = [];
 const imageCache = new Map();
@@ -26,8 +16,8 @@ function report(file, pos, hint) {
   errors.push({ file, line: pos?.line ?? 0, column: pos?.column ?? 0, hint });
 }
 
-// Относительные пути картинок резолвятся от .md-файла, оптимизируются sharp-ом
-// и переписываются на абсолютный URL (jsDelivr @sha).
+// Все пути в выдаче — ОТНОСИТЕЛЬНЫЕ (от корня контента): вьювер сам резолвит
+// их через config.json → contentBase. Никакой привязки к конкретному хостингу.
 async function resolveImage(src, { absPath, id, pos }) {
   if (!src) return null;
   if (/^https?:\/\//i.test(src)) {
@@ -54,7 +44,7 @@ async function resolveImage(src, { absPath, id, pos }) {
     await optimizeImage(abs, path.join(OUT, 'img', name), { width: 640 });
     imageCache.set(name, true);
   }
-  return `${CDN}/img/${name}`;
+  return `img/${name}`;
 }
 
 async function main() {
@@ -109,7 +99,7 @@ async function main() {
         width: 636,
         height: 340,
       });
-      header = `${CDN}/img/${name}`;
+      header = `img/${name}`;
     }
 
     await fs.writeFile(
@@ -122,7 +112,7 @@ async function main() {
       order: Number.isFinite(data.order) ? data.order : 1000,
       hidden: Boolean(data.hidden),
       header,
-      url: `${CDN}/docs/${id}.json`,
+      url: `docs/${id}.json`,
     });
   }
 
@@ -137,9 +127,7 @@ async function main() {
   index.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
   await fs.writeFile(path.join(OUT, 'index.json'), JSON.stringify(index, null, 2));
 
-  const docsCount = index.length;
-  const size = (await fs.stat(path.join(OUT, 'index.json'))).size;
-  console.log(`Готово: ${docsCount} документ(ов), index.json ${size} байт → out/`);
+  console.log(`Готово: ${index.length} документ(ов) → site/ (index.json, docs/, img/)`);
 }
 
 await main();

@@ -1,6 +1,11 @@
-import cfg from '../../config.json';
+// Контент лежит РЯДОМ с html (index.json, docs/, img/) — базой в проде является
+// папка текущей страницы (какой бы ни был Base URI); в dev контент раздаёт
+// vite на /content/ с того же origin.
+const BASE = import.meta.env.DEV
+  ? `${globalThis.location.origin}/content`
+  : new URL('.', globalThis.location.href).href;
 
-// Индекс контента публикуется CI в ветку `published`; raw.githubusercontent
-// отдаёт его с кэшем 5 минут и CORS *. Документы и картинки внутри индекса —
-// абсолютные URL на jsDelivr, запиннованные на SHA коммита (иммутабельные).
-export const INDEX_URL = `https://raw.githubusercontent.com/${cfg.repo}/${cfg.branch}/index.json`;
+export const CONTENT_ROOT = BASE.endsWith('/') ? BASE : `${BASE}/`;
+export const INDEX_URL = `${CONTENT_ROOT}index.json`;
+// Разрешённый хост картинок — origin самой страницы.
+export const CONTENT_ORIGIN = new URL(BASE).origin;

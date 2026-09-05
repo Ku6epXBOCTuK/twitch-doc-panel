@@ -1,6 +1,6 @@
 <script>
   import { onContext, getBroadcasterConfig } from '../shared/twitch.js';
-  import { INDEX_URL } from '../shared/content.js';
+  import { INDEX_URL, CONTENT_ROOT, CONTENT_ORIGIN } from '../shared/content.js';
   import DocRenderer from '../shared/DocRenderer.svelte';
 
   let theme = $state('dark');
@@ -45,14 +45,26 @@
     }
   }
 
+  // Относительные пути картинок (img/...) резолвим от корня контента —
+  // заодно защита: подменённый JSON не сможет указать чужой хост (см. DocRenderer).
+  function absolutize(n) {
+    if (typeof n === 'string' || !Array.isArray(n)) return n;
+    const [tag, ...rest] = n;
+    if (tag === 'img' && typeof rest[0] === 'string' && !/^https?:\/\//i.test(rest[0])) {
+      return ['img', new URL(rest[0], CONTENT_ROOT).href, ...rest.slice(1)];
+    }
+    return [tag, ...rest.map(absolutize)];
+  }
+
   async function loadDoc(i) {
     current = i;
     doc = null;
     docError = '';
     try {
-      const res = await fetch(docs[i].url);
+      const res = await fetch(new URL(docs[i].url, CONTENT_ROOT).href);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      doc = await res.json();
+      const json = await res.json();
+      doc = { ...json, blocks: json.blocks.map(absolutize) };
     } catch (e) {
       console.error(e);
       docError = String(e.message ?? e);
@@ -76,14 +88,14 @@
     <p class="muted center">Документов пока нет.</p>
   {:else}
     {#if docs[current]?.header}
-      <img class="header" src={docs[current].header} alt="" />
+      <img class="header" src={new URL(docs[current].header, CONTENT_ROOT).href} alt="" />
     {/if}
     <main>
       <h1 class="title">{doc?.title ?? docs[current].title}</h1>
       {#if docError}
         <p class="muted">Не удалось загрузить документ ({docError}).</p>
       {:else if doc}
-        <DocRenderer nodes={doc.blocks} />
+        <DocRenderer nodes={doc.blocks} imgOrigin={CONTENT_ORIGIN} />
       {:else}
         <p class="muted">Загрузка…</p>
       {/if}

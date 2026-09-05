@@ -1,60 +1,74 @@
 # twitch-panel-bio
 
 Twitch Panel Extension: одна панель (318×496), внутри — несколько документов.
-Контент — Markdown из git-репозитория: push → CI собирает → зрители видят новое
-через ≤5 минут. Никаких бэкендов и кнопок «обновить».
+Контент — Markdown из git (Gitea), хостинг — твой сервер за nginx. Без бэкендов, без GitHub, без ревью.
 
 ## Структура
 
 ```
-viewer.html / config.html      входы (single-file билд, один файл каждый)
 src/viewer/                    вьювер: пейджер документов, тема Twitch
 src/config/                    панель управления (Creator Dashboard): порядок/скрытие
 src/shared/DocRenderer.svelte  рекурсивный рендерер JSON-AST (без {@html})
 builder/                       валидация MD по белому списку → JSON-AST, sharp-картинки
 content/docs/*.md              документы (front-matter: title обязателен, order/hidden/header)
-.github/workflows/publish.yml  CI: push в main → ветка `published` (index.json + docs + img)
-config.json                    ← впиши сюда repo: "user/repo"
+site/                          сборка контента (промежуточная)
+app/                           ИТОГ ДЛЯ ДЕПЛОЯ: viewer.html, config.html,
+                               index.json, docs/, img/ — контент лежит рядом с html
 ```
 
 ## Команды
 
 | Команда | Что делает |
 |---|---|
-| `npm run dev` | dev-сервер (HTTPS :8080): `/viewer.html` и `/config.html` |
-| `npm run build` | два single-file билда → `dist/pkg/` (viewer.html + config.html) — это zip-билд |
-| `npm run build:content` | контент: `content/` → `out/` (index.json, docs/*.json, img/*.webp) |
+| `npm run build:content` | контент: `content/` → `site/` |
+| `npm run build` | фронтенд + контент → `app/` (одна самодостаточная папка) |
+| `npm run dev` | dev-сервер :8080 (https, если в `certs/` есть mkcert-сертификат) |
 
-Локально билдер требует заполненного `config.json`; в CI SHA коммита подставляется автоматически.
+## Деплой
+
+`app/` — самодостаточная папка: контент ищется рядом с html, никаких зашитых
+адресов и отдельных location не нужно. nginx — просто статика:
+
+```nginx
+location /panel/ {
+    alias /srv/twitch-panel/app/;
+}
+```
+
+Base URI в консоли Twitch = URL этой папки со слэшем на конце
+(`https://xboct-git.duckdns.org/panel/`), Panel Viewer Path `viewer.html`,
+Panel Config Path `config.html`. Контент same-origin — CORS не нужен вовсе.
+
+Обновление: `npm run build:content && npm run build` → содержимое `app/` — на сервер
+в ту же папку (git push/pull или копированием).
 
 ## Контент
 
 - Документы: `content/docs/<id>.md`. Front-matter: `title` (обязателен), `order` (число),
   `hidden` (bool), `header` (путь к заголовочной картинке от `content/assets/`).
 - Картинки в тексте: `![](картинка.png)` — путь относительно .md; билдер жмёт в WebP
-  (макс. ширина 640) и переписывает на иммутабельный jsDelivr-URL. Битые пути = ошибка сборки.
-- Заголовочные картинки режутся в 636×340 (панель 318×170 @2x, object-fit: cover).
+  (макс. ширина 640) и пишет относительный путь. Битые пути = ошибка сборки.
+- Заголовочные картинки режутся в 636×340 (318×170 @2x, object-fit: cover).
 - Белый список: заголовки, абзацы, **жирный**/*курсив*/~~зачёркнутый~~, списки (включая
   GFM-чекбоксы), ссылки (только http/https), картинки, цитаты, `---`. Всё прочее
   (HTML, код-блоки, таблицы) — ошибка сборки с файлом:строкой.
 
-## Доставка
+## Тест на своём канале (Local Test)
 
-CI (`push` в `main`) собирает `out/` и коммитит в ветку `published` (peaceiris/actions-gh-pages,
-история сохраняется). Вьювер читает `raw.githubusercontent.com/<repo>/published/index.json`
-(кэш 5 мин), документы — по абсолютным jsDelivr-URL с SHA коммита (иммутабельные).
-Конфиг-сегмент Twitch хранит только per-channel исключения: `{v:1, hidden:[], order:[]}`.
+1. `npm run build:content && npm run dev` — окно держать открытым; строка `Local:`
+   покажет адрес и схему (с mkcert-сертификатом в `certs/` сервер поднимется по https).
+2. В консоли Twitch: Base URI = адрес из `Local:` со слэшем на конце,
+   Panel Viewer Path `viewer.html`, Panel Config Path `config.html`.
+3. Extension Manager → Activate на своём канале. Панель управления — Configure
+   у расширения в Extension Manager (порядок, скрытие документов).
 
-## Чеклист Twitch-консоли (dev.twitch.tv → Console)
+Если в DevTools на config.html «Provisional headers are shown» / «CORS error» —
+сервер не запущен, либо Base URI не совпадает со строкой `Local:` (схема/порт).
 
-1. Create Extension → тип **Panel**, заполнить имя/описание.
-2. **Asset Hosting**: Base URI `https://localhost:8080/` (для Local Test);
-   Panel Viewer Path = `/viewer.html`; Panel Config Path = `/config.html`.
-3. **CSP**: connect-src — `raw.githubusercontent.com`, `cdn.jsdelivr.net`;
-   img-src — `cdn.jsdelivr.net` (добавить raw, если картинки будут там).
-4. Загрузить zip из `dist/pkg/` (Files → Upload Version).
-5. Local Test → Activate на своём канале (ревью не нужно). Публичный релиз —
-   Hosted Test → Review (walkthrough + change log).
+## Мелочи
 
-Pop-out отключить нельзя — это кнопка UI Twitch. Скрипт Helper (`twitch-ext.min.js`)
-обязателен в обоих HTML — уже подключён.
+- Pop-out отключить нельзя — кнопка UI Twitch.
+- Zip-загрузка в Twitch = Hosted Test (виден только тестовым аккаунтам); для зрителей
+  нужно Review → Released. Контент в zip в любом случае не попадает — он с твоего сервера.
+- Если Twitch заблокирует fetch контента по CSP — добавь origin папки в connect-src
+  allowlist расширения (обычно same-origin и так разрешён).

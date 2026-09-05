@@ -1,0 +1,27 @@
+{
+  "name": "twitch-panel-bio",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "vite",
+    "build:viewer": "vite build -c vite.build.viewer.js",
+    "build:config": "vite build -c vite.build.config.js",
+    "build": "npm run build:viewer && npm run build:config && node scripts/pack.js",
+    "build:content": "node builder/build.js"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "remark-gfm": "^4.0.0",
+    "remark-parse": "^11.0.0",
+    "sharp": "^0.33.5",
+    "svelte": "^5.0.0",
+    "unified": "^11.0.4"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@vitejs/plugin-basic-ssl": "^1.2.0",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.0.3"
+  }
+}

@@ -74,3 +74,19 @@ app/                           итог для деплоя: viewer.html + confi
 
 Если config-вью не может загрузить index.json по CSP — добавь хост контента в
 connect-src allowlist расширения. Pop-out отключить нельзя — кнопка UI Twitch.
+
+## Ассеты и скриншоты для «Version Details»
+
+| Ассет | Требование Twitch | Как получить |
+|---|---|---|
+| Логотип | 100×100 PNG | `npm run assets` → `assets/logo-100x100.png` |
+| Значок | 24×24 PNG (+64×64 про запас) | `npm run assets` → `assets/icon-*.png` |
+| Discovery-картинка | 300×200 PNG, без прозрачности | `npm run assets` → `assets/discovery-300x200.png` |
+| Скриншот | 1024×768 (4:3), PNG <10 МБ | `npm run screenshots` → `assets/screenshots/` |
+
+- Исходники дизайна — SVG в `assets/src/`: правишь → перезапускаешь `npm run assets`.
+- Скриншот-скрипт сам собирает демо-контент из `content/docs` во временную папку,
+  снимает панель в контексте и закрывает сервер. Другой кадр — правь разметку
+  обёртки в `scripts/screenshot.js`.
+- Категория, summary/description, EULA/Privacy URL, author email — текстовые поля
+  в консоли; после ввода author email нужно перейти по письму-подтверждению.

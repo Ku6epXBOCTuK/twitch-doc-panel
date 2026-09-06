@@ -9,9 +9,15 @@
   const LINK_RE = /^https?:\/\//i;
 
   function safeImg(src) {
-    if (typeof src !== 'string' || !/^https:\/\//i.test(src)) return null;
+    if (typeof src !== 'string') return null;
     try {
-      return ALLOWED_CONTENT_HOSTS.includes(new URL(src).hostname) ? src : null;
+      const u = new URL(src);
+      if (!ALLOWED_CONTENT_HOSTS.includes(u.hostname)) return null;
+      // http разрешён только для localhost (дев-режим и скриншоты)
+      if (u.protocol === 'https:' || u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+        return u.href;
+      }
+      return null;
     } catch {
       return null;
     }

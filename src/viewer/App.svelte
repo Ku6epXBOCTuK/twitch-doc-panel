@@ -35,14 +35,26 @@
     return null;
   }
 
-  onBroadcasterConfig((c) => {
-    const json = JSON.stringify(c ?? null);
-    if (json === lastCfgJson) return;
-    lastCfgJson = json;
-    cfg = c;
-    const indexUrl = resolveIndexUrl();
-    if (indexUrl) loadIndex(indexUrl);
-  });
+  // ?index=<url> — ручное переопределение (тесты, скриншоты): грузим сразу,
+  // не дожидаясь конфиг-сегмента. Хост всё равно проверяется по whitelist.
+  const qp = new URLSearchParams(globalThis.location?.search ?? '').get('index');
+  if (qp) {
+    if (!isAllowedUrl(qp)) {
+      loadError = qp;
+      status = 'bad-host';
+    } else {
+      loadIndex(qp);
+    }
+  } else {
+    onBroadcasterConfig((c) => {
+      const json = JSON.stringify(c ?? null);
+      if (json === lastCfgJson) return;
+      lastCfgJson = json;
+      cfg = c;
+      const indexUrl = resolveIndexUrl();
+      if (indexUrl) loadIndex(indexUrl);
+    });
+  }
 
   async function loadIndex(indexUrl) {
     status = 'loading';

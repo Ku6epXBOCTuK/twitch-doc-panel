@@ -4,6 +4,8 @@ export const ALLOWED_CONTENT_HOSTS = [
   'raw.githubusercontent.com', // GitHub
   'xboct-git.duckdns.org',     // Gitea
   'xboctuk.duckdns.org',       // хостинг контента (twitch-panel-docs)
+  'localhost',                 // локальная разработка и скриншоты
+  '127.0.0.1',
 ];
 
 // Ссылка на index.json по умолчанию, пока не задана в панели управления канала.

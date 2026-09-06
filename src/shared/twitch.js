@@ -9,6 +9,7 @@ const contextListeners = [];
 const authListeners = [];
 const configListeners = [];
 let broadcasterConfig = null;
+let notified = false;
 
 function parseConfig() {
   const raw = ext?.configuration?.broadcaster?.content;
@@ -23,6 +24,7 @@ function parseConfig() {
 
 function notifyConfig() {
   broadcasterConfig = parseConfig();
+  notified = true;
   configListeners.forEach((cb) => cb(broadcasterConfig));
 }
 
@@ -34,6 +36,14 @@ if (ext) {
   ext.configuration?.onChanged?.(notifyConfig);
   // Если значение уже лежит синхронно — уведомляем сразу.
   if (ext.configuration?.broadcaster?.content) notifyConfig();
+  // Страховка: если конфиг так и не пришёл (страница открыта вне Twitch) —
+  // уведомляем null, чтобы UI не завис на «Загрузка…».
+  setTimeout(() => {
+    if (!notified) notifyConfig();
+  }, 2000);
+} else {
+  // Вне Twitch конфига нет вовсе.
+  setTimeout(notifyConfig, 0);
 }
 
 export function onContext(cb) {
@@ -46,14 +56,10 @@ export function onAuthorized(cb) {
 }
 
 // Подписка на конфиг канала (null, пока не пришёл или вне Twitch). Колбэк зовётся
-// сразу, если значение уже доступно.
+// сразу, если значение уже доставлено.
 export function onBroadcasterConfig(cb) {
   configListeners.push(cb);
-  if (ext) {
-    if (broadcasterConfig !== null) cb(broadcasterConfig);
-  } else {
-    cb(null);
-  }
+  if (notified) cb(broadcasterConfig);
 }
 
 // Разовое чтение текущего значения (может быть null до бутстрапа).

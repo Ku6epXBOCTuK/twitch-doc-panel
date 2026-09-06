@@ -36,37 +36,28 @@ const PROFILE = fs.mkdtempSync(path.join(os.tmpdir(), 'panel-shot-profile-'));
 const OUT_DIR = path.join(root, 'assets', 'screenshots');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-// 1. Демо-заголовочная картинка (SVG → PNG)
-const demoHeaderSvg = fs.readFileSync(path.join(root, 'assets', 'src', 'header-demo.svg'), 'utf8');
-fs.writeFileSync(
-  path.join(STAGING, 'header-demo.html'),
-  `<!doctype html><meta charset="utf-8"><style>*{margin:0}</style>${
-    demoHeaderSvg.replace('<svg', '<svg width="636" height="340"')
-  }`,
-);
-spawnSync(browser, [
-  '--headless=new',
-  `--user-data-dir=${PROFILE}`,
-  `--screenshot=${path.join(STAGING, 'header-demo.png')}`,
-  '--window-size=636,340',
-  '--hide-scrollbars',
-  '--virtual-time-budget=3000',
-  `file:///${path.join(STAGING, 'header-demo.html').replace(/\\/g, '/')}`,
-]);
-
-// 2. Контент: .md из content/docs + index.json
-const docsDir = path.join(root, 'content', 'docs');
+// 2. Контент: .md из папки (аргумент, по умолчанию content/docs) + index.json.
+//    Если у документа во front-matter указан header — картинка копируется в стейджинг.
+const docsDir = path.resolve(root, process.argv[2] ?? path.join('content', 'docs'));
 const index = [];
 for (const f of (await fsp.readdir(docsDir)).filter((f) => f.endsWith('.md'))) {
   const { data } = matter(await fsp.readFile(path.join(docsDir, f), 'utf8'));
   const id = f.replace(/\.md$/, '');
   fs.copyFileSync(path.join(docsDir, f), path.join(STAGING, f));
+  let header = null;
+  if (typeof data.header === 'string' && data.header) {
+    const hp = path.resolve(docsDir, data.header);
+    if (fs.existsSync(hp)) {
+      fs.copyFileSync(hp, path.join(STAGING, data.header));
+      header = data.header;
+    }
+  }
   index.push({
     id,
     title: data.title ?? id,
     order: Number.isFinite(data.order) ? data.order : 100,
     hidden: false,
-    header: id === 'about' && fs.existsSync(path.join(STAGING, 'header-demo.png')) ? 'header-demo.png' : null,
+    header,
     url: f,
   });
 }
@@ -113,6 +104,11 @@ fs.writeFileSync(
   <p>Несколько документов<br>в одной панели канала</p>
 </div>
 <div class="card"><iframe src="/viewer.html?index=/index.json"></iframe></div>
+<script>
+  if (new URLSearchParams(location.search).has('scroll')) {
+    document.querySelector('iframe').src = '/viewer.html?index=/index.json&demoScroll=1';
+  }
+</script>
 `,
 );
 
@@ -167,10 +163,15 @@ function shoot(w, h, outName, urlPath) {
   });
 }
 
-await shoot(1024, 768, 'panel-1024x768.png', '/');
+await await shoot(1024, 768, 'panel-1024x768.png', '/');
+await shoot(1024, 768, 'panel-scrolled-1024x768.png', '/?scroll=1');
 
 server.close();
-fs.rmSync(STAGING, { recursive: true, force: true });
-fs.rmSync(PROFILE, { recursive: true, force: true });
+try {
+  fs.rmSync(STAGING, { recursive: true, force: true });
+  fs.rmSync(PROFILE, { recursive: true, force: true });
+} catch {
+  // папки профиля могут быть ненадолго заняты Chrome — не критично
+}
 console.log(`Готово: скриншоты в assets/screenshots/ (сервер остановлен)`);
 process.exit(0);

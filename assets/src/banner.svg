@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 318 150">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9146FF"/>
+      <stop offset="0.55" stop-color="#5C3AAD"/>
+      <stop offset="1" stop-color="#1F1130"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#BF94FF"/>
+      <stop offset="1" stop-color="#FFFFFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="318" height="150" fill="url(#g)"/>
+  <circle cx="262" cy="18" r="72" fill="#BF94FF" opacity="0.22"/>
+  <circle cx="14" cy="146" r="52" fill="#772CE8" opacity="0.35"/>
+  <circle cx="150" cy="80" r="34" fill="#FFFFFF" opacity="0.08"/>
+  <g transform="rotate(-6 268 96)">
+    <rect x="236" y="40" width="56" height="74" rx="9" fill="#CBB8FF" opacity="0.5"/>
+  </g>
+  <g transform="rotate(4 266 92)">
+    <rect x="240" y="34" width="60" height="80" rx="10" fill="#F2EDFC"/>
+    <rect x="249" y="46" width="30" height="7" rx="3.5" fill="#9146FF"/>
+    <rect x="249" y="60" width="42" height="5" rx="2.5" fill="#BCA5F2"/>
+    <rect x="249" y="70" width="36" height="5" rx="2.5" fill="#BCA5F2"/>
+    <rect x="249" y="80" width="42" height="5" rx="2.5" fill="#BCA5F2"/>
+    <path d="M258 100 l14 12 -14 12" fill="none" stroke="#6441A5" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <rect x="24" y="64" width="46" height="4" rx="2" fill="url(#acc)"/>
+  <text x="24" y="94" fill="#FFFFFF" font-family="Segoe UI, system-ui, sans-serif" font-size="19" font-weight="700">Документы канала</text>
+</svg>

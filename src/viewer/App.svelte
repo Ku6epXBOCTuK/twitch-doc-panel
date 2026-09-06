@@ -121,6 +121,55 @@
     }
   }
 
+  // --- Оверлей-скроллбар: полупрозрачный, поверх контента, виден только при скролле ---
+  let mainEl = $state(null);
+  let contentEl = $state(null);
+  let thumb = $state({ visible: false, top: 0, height: 0 });
+  let hideTimer = null;
+
+  function updateThumb() {
+    const el = mainEl;
+    if (!el) return;
+    if (el.scrollHeight <= el.clientHeight + 1) {
+      thumb = { visible: false, top: 0, height: 0 };
+      return;
+    }
+    const height = Math.max(28, (el.clientHeight / el.scrollHeight) * el.clientHeight);
+    const top =
+      (el.scrollTop / (el.scrollHeight - el.clientHeight)) * (el.clientHeight - height);
+    thumb = { ...thumb, height, top };
+  }
+
+  function onScroll() {
+    updateThumb();
+    thumb = { ...thumb, visible: true };
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      thumb = { ...thumb, visible: false };
+    }, 700);
+  }
+
+  // Пересчёт при изменении размеров (смена документа, загрузка картинок)
+  const demoScroll = new URLSearchParams(globalThis.location?.search ?? '').has('demoScroll');
+  $effect(() => {
+    if (!mainEl || !contentEl) return;
+    const ro = new ResizeObserver(() => {
+      updateThumb();
+      // Демо-кадр для скриншотов: прокручиваем контент, чтобы ползунок и тени
+      // попали в кадр (включается параметром ?demoScroll=1).
+      if (demoScroll && mainEl.scrollHeight > mainEl.clientHeight && mainEl.scrollTop < 150) {
+        mainEl.scrollTop = 200;
+      }
+    });
+    ro.observe(mainEl);
+    ro.observe(contentEl);
+    const timer = demoScroll ? setInterval(() => mainEl.scrollBy(0, 2), 150) : null;
+    return () => {
+      ro.disconnect();
+      if (timer) clearInterval(timer);
+    };
+  });
+
   const prev = () => current > 0 && loadDoc(current - 1);
   const next = () => current < docs.length - 1 && loadDoc(current + 1);
 </script>
@@ -146,16 +195,26 @@
     {#if docs[current]?.header}
       <img class="header" src={docs[current].header} alt="" />
     {/if}
-    <main>
-      <h1 class="title">{doc?.title ?? docs[current].title}</h1>
-      {#if docError}
-        <p class="muted">Не удалось загрузить документ ({docError}).</p>
-      {:else if doc}
-        <DocRenderer nodes={doc.blocks} />
-      {:else}
-        <p class="muted">Загрузка…</p>
+    <div class="scrollwrap">
+      <main bind:this={mainEl} onscroll={onScroll}>
+        <div bind:this={contentEl}>
+          <h1 class="title">{doc?.title ?? docs[current].title}</h1>
+          {#if docError}
+            <p class="muted">Не удалось загрузить документ ({docError}).</p>
+          {:else if doc}
+            <DocRenderer nodes={doc.blocks} />
+          {:else}
+            <p class="muted">Загрузка…</p>
+          {/if}
+        </div>
+      </main>
+      {#if thumb.height > 0}
+        <div
+          class="sb-thumb"
+          style="top: {thumb.top}px; height: {thumb.height}px; opacity: {thumb.visible ? 1 : 0}"
+        ></div>
       {/if}
-    </main>
+    </div>
     {#if docs.length > 1}
       <nav>
         <button onclick={prev} disabled={current === 0} aria-label="Предыдущий документ">‹</button>
@@ -172,13 +231,17 @@
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    padding: 10px;
+    padding: 0;
     gap: 8px;
     /* Тема приходит из Twitch (onContext) */
     --text: #efeff1;
     --muted: #adadb8;
     --border: #3a3a3d;
     --link: #bf94ff;
+    --surface: #17171a;
+    --surface-0: rgba(23, 23, 26, 0);
+    --shadow: rgba(0, 0, 0, 0.4);
+    --thumb: rgba(173, 173, 184, 0.55);
     color: var(--text);
   }
   .panel[data-theme='light'] {
@@ -186,19 +249,58 @@
     --muted: #53535f;
     --border: #dcdde1;
     --link: #6441a5;
+    --surface: #f7f7f8;
+    --surface-0: rgba(247, 247, 248, 0);
+    --shadow: rgba(0, 0, 0, 0.16);
+    --thumb: rgba(83, 83, 95, 0.5);
   }
   .header {
     width: 100%;
-    height: 150px;
-    object-fit: cover;
-    border-radius: 6px;
+    height: auto;
+    display: block;
     flex-shrink: 0;
+  }
+  .scrollwrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    min-height: 0;
   }
   main {
     flex: 1;
     overflow-y: auto;
     min-height: 0;
-    padding-right: 2px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    /* Нативный скроллбар скрыт полностью — вместо него оверлей-ползунок .sb-thumb */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    overscroll-behavior: contain;
+    /* Градиентные тени сверху/снизу: сами прячутся, когда прокрутка дошла до края */
+    background:
+      linear-gradient(var(--surface) 30%, var(--surface-0)),
+      linear-gradient(var(--surface-0), var(--surface) 70%) 0 100%,
+      radial-gradient(farthest-side at 50% 0, var(--shadow), transparent),
+      radial-gradient(farthest-side at 50% 100%, var(--shadow), transparent) 0 100%;
+    background-repeat: no-repeat;
+    background-size:
+      100% 40px,
+      100% 40px,
+      100% 14px,
+      100% 14px;
+    background-attachment: local, local, scroll, scroll;
+  }
+  main::-webkit-scrollbar {
+    display: none;
+  }
+  .sb-thumb {
+    position: absolute;
+    right: 3px;
+    width: 4px;
+    border-radius: 2px;
+    background: var(--thumb);
+    pointer-events: none;
+    transition: opacity 0.25s;
   }
   .title {
     font-size: 1.1em;

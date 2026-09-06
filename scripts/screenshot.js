@@ -63,6 +63,7 @@ for (const f of (await fsp.readdir(docsDir)).filter((f) => f.endsWith('.md'))) {
 }
 index.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
 fs.writeFileSync(path.join(STAGING, 'index.json'), JSON.stringify(index, null, 2));
+console.log('staging:', fs.readdirSync(STAGING).join(', '));
 
 // 3. viewer.html (собранный)
 fs.copyFileSync(path.join(root, 'app', 'viewer.html'), path.join(STAGING, 'viewer.html'));

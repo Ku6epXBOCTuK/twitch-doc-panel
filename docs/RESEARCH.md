@@ -20,20 +20,20 @@
 
 ## 2. Ключевые факты о панельных расширениях (проверено по докам)
 
-| Факт | Значение |
-|---|---|
-| Тип расширения | **Panel** — «коробка» в блоке «О канале», под плеером |
-| Размер | **318 × 496 px**, жёстко (чтобы не было скролла iframe); скроллим внутренний контент |
-| Активность | Панель видна **даже когда канал офлайн** — идеально для био/справки |
-| Pop-out | Зритель может открыть расширение в отдельном окне побольше |
-| Хостинг кода | zip-загрузка на CDN Twitch (`*.ext-twitch.tv`) ИЛИ свой HTTPS-хостинг (Base URI) |
-| Config Service | 3 сегмента (developer / broadcaster / global), **5 КБ на сегмент**, публично читаемо |
-| Helper-библиотека | `<script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js">` — обязательна |
-| CSP | Настраивается в консоли: домены для `connect-src` и `img-src` надо внести в allowlist |
-| Sandbox | нет `alert/confirm/prompt`, нет вложенных iframe, нет top-navigation, storage API ограничен |
-| Мобилки | Панели показываются в мобильном приложении, если включить mobile-ready; бюджет первой загрузки **1 МБ / 3 сек** |
-| Ревью | Нужно только для публичного релиза. **На свой канал ставится без ревью** (Local Test → Activate) |
-| Жизненный цикл | Local Test → Hosted Test → Review → Released (Released не редактируется, только новая версия) |
+| Факт              | Значение                                                                                                        |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| Тип расширения    | **Panel** — «коробка» в блоке «О канале», под плеером                                                           |
+| Размер            | **318 × 496 px**, жёстко (чтобы не было скролла iframe); скроллим внутренний контент                            |
+| Активность        | Панель видна **даже когда канал офлайн** — идеально для био/справки                                             |
+| Pop-out           | Зритель может открыть расширение в отдельном окне побольше                                                      |
+| Хостинг кода      | zip-загрузка на CDN Twitch (`*.ext-twitch.tv`) ИЛИ свой HTTPS-хостинг (Base URI)                                |
+| Config Service    | 3 сегмента (developer / broadcaster / global), **5 КБ на сегмент**, публично читаемо                            |
+| Helper-библиотека | `<script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js">` — обязательна                    |
+| CSP               | Настраивается в консоли: домены для `connect-src` и `img-src` надо внести в allowlist                           |
+| Sandbox           | нет `alert/confirm/prompt`, нет вложенных iframe, нет top-navigation, storage API ограничен                     |
+| Мобилки           | Панели показываются в мобильном приложении, если включить mobile-ready; бюджет первой загрузки **1 МБ / 3 сек** |
+| Ревью             | Нужно только для публичного релиза. **На свой канал ставится без ревью** (Local Test → Activate)                |
+| Жизненный цикл    | Local Test → Hosted Test → Review → Released (Released не редактируется, только новая версия)                   |
 
 Важно: в Config Service можно хранить **только метаданные** (список документов, порядок,
 URL'ы), не сами документы — 5 КБ мало, и сегмент публичен (никаких секретов).
@@ -43,12 +43,12 @@ URL'ы), не сами документы — 5 КБ мало, и сегмент
 
 ## 3. Архитектура (рекомендуемый вариант, без бэкенда)
 
-```
+```txt
 GitHub-репозиторий (public)                Twitch
 ├─ docs/
-│  ├─ index.json      ← манифест контента   ┌─────────────────────────────┐
-│  ├─ rules.md        ← сами документы      │ Extension (Panel 318×496)   │
-│  ├─ faq.md                                │  Svelte 5 + Vite            │
+│  ├─ index.json      ← манифест контента    ┌─────────────────────────────┐
+│  ├─ rules.md        ← сами документы       │ Extension (Panel 318×496)   │
+│  ├─ faq.md                                 │  Svelte 5 + Vite            │
 │  └─ assets/                                │  ┌───────────────────────┐  │
 │     ├─ rules-header.png                    │  │ табы/пейджер доков    │  │
 │     └─ ...                                 │  │ MD → HTML (sanitized) │  │
@@ -61,6 +61,7 @@ GitHub-репозиторий (public)                Twitch
 ```
 
 **Поток данных во вьювер-вью:**
+
 1. При старте Helper отдаёт `configuration.broadcaster` (JSON со списком документов).
 2. Приложение рендерит табы/карусель; по выбору таба лениво фетчит MD с jsDelivr
    (`https://cdn.jsdelivr.net/gh/<user>/<repo>@<branch|sha>/docs/faq.md`).
@@ -80,6 +81,7 @@ GitHub-репозиторий (public)                Twitch
 GitHub REST API — см. открытый вопрос про PAT).
 
 ### Альтернативы
+
 - **С EBS (свой мини-бэкенд, CF Worker/Node):** синк репо по webhook, прокси приватного
   репо, серверное хранение PAT, аплоад картинок из UI коммитом в репо. Плюсы: приватность,
   секреты, мгновенная инвалидация. Минусы: инфраструктура, которую мы хотели избежать.
@@ -106,6 +108,7 @@ JSON-бандл в `gh-pages`), но это опция.
 ## 5. Плюсы и минусы
 
 ### Плюсы
+
 - Нативное место на канале, виден офлайн — ровно то, что нужно для био/справки.
 - Одна панель слота — сколько угодно документов (табы), лимит только UX.
 - Хостинг кода на CDN Twitch бесплатно; контент — на CDN GitHub бесплатно. Ноль затрат, ноль серверов.
@@ -115,6 +118,7 @@ JSON-бандл в `gh-pages`), но это опция.
 - Версионирование контента бесплатно из коробки — это git.
 
 ### Минусы / ограничения
+
 - 318×496 px — тесно для длинных документов; обязателен внутренний скролл и мобильный дизайн; pop-out спасает частично.
 - CSP-allowlist: каждый внешний домен (jsDelivr, GitHub) надо руками вносить в консоли на версию — забыл = контент молча не грузится.
 - Config Service публичен и мал (5 КБ) — секреты (PAT) там хранить нельзя.
@@ -128,17 +132,17 @@ JSON-бандл в `gh-pages`), но это опция.
 
 ## 6. Библиотеки
 
-| Назначение | Пакет | Комментарий |
-|---|---|---|
-| Фреймворк | `svelte@5`, `vite`, `@sveltejs/vite-plugin-svelte` | два entry: viewer.html / config.html |
-| Markdown | `marked` | крошечный, GFM из коробки; либо `markdown-it` если нужны плагины |
-| Санитайзер | `dompurify` | **обязателен** — контент внешний |
-| Заголовки-анкоры | `marked-gfm-heading-id` или `github-slugger` | для оглавления в панели |
-| Подсветка кода | `highlight.js` (опц.) | shiki тяжёлый для 1 МБ бюджета |
-| Формулы | `katex` (опц.) | если нужны |
-| Git API из UI | `octokit` (опц.) | коммит картинок из конфиг-вью |
-| Local dev | `mkcert` + Twitch CLI / community DevRig | Rig от Twitch устарел; HTTPS обязателен даже локально |
-| Типы Helper | своя `.d.ts` для `window.Twitch.ext` | npm-пакета с офиц. типами нет надёжного |
+| Назначение       | Пакет                                              | Комментарий                                                      |
+| ---------------- | -------------------------------------------------- | ---------------------------------------------------------------- |
+| Фреймворк        | `svelte@5`, `vite`, `@sveltejs/vite-plugin-svelte` | два entry: viewer.html / config.html                             |
+| Markdown         | `marked`                                           | крошечный, GFM из коробки; либо `markdown-it` если нужны плагины |
+| Санитайзер       | `dompurify`                                        | **обязателен** — контент внешний                                 |
+| Заголовки-анкоры | `marked-gfm-heading-id` или `github-slugger`       | для оглавления в панели                                          |
+| Подсветка кода   | `highlight.js` (опц.)                              | shiki тяжёлый для 1 МБ бюджета                                   |
+| Формулы          | `katex` (опц.)                                     | если нужны                                                       |
+| Git API из UI    | `octokit` (опц.)                                   | коммит картинок из конфиг-вью                                    |
+| Local dev        | `mkcert` + Twitch CLI / community DevRig           | Rig от Twitch устарел; HTTPS обязателен даже локально            |
+| Типы Helper      | своя `.d.ts` для `window.Twitch.ext`               | npm-пакета с офиц. типами нет надёжного                          |
 
 CSS-фреймворк не нужен — свои стили на 318px проще.
 
@@ -181,16 +185,16 @@ CSS-фреймворк не нужен — свои стили на 318px про
 
 ## 9. Источники
 
-- Extensions overview / hosting / CSP: https://dev.twitch.tv/docs/extensions/
-- Building (Helper, Config Service 5 КБ, PubSub): https://dev.twitch.tv/docs/extensions/building/
-- Designing (панель 318×496, pop-out): https://dev.twitch.tv/docs/extensions/designing/
-- Life cycle (Local Test, ревью, Released): https://dev.twitch.tv/docs/extensions/life-cycle/
-- Guidelines & Policies (мобайл 1 МБ): https://dev.twitch.tv/docs/extensions/guidelines-and-policies/
-- Mobile-видимость панелей: https://help.twitch.tv/s/article/how-to-use-extensions
-- Статус платформы / deprecation Rig: https://dev.twitch.tv/docs/product-lifecycle/ и https://barrycarlyon.co.uk/wordpress/2023/04/04/the-twitch-extensions-developer-rig-is-dead/
-- CORS jsDelivr/GitHub: проверено curl-ом (ACAO: * на raw.githubusercontent.com, cdn.jsdelivr.net, pages)
-- Pop-out как элемент UI Twitch (отключить нельзя): RFC 0008 https://discuss.dev.twitch.com/t/rfc-0008-pop-out-support-for-extensions/16920
-- vite-plugin-singlefile (один вход на билд, multi-entry не поддерживается): https://github.com/richardtallent/vite-plugin-singlefile
+- Extensions overview / hosting / CSP: [https://dev.twitch.tv/docs/extensions/](https://dev.twitch.tv/docs/extensions/)
+- Building (Helper, Config Service 5 КБ, PubSub): [https://dev.twitch.tv/docs/extensions/building/](https://dev.twitch.tv/docs/extensions/building/)
+- Designing (панель 318×496, pop-out): [https://dev.twitch.tv/docs/extensions/designing/](https://dev.twitch.tv/docs/extensions/designing/)
+- Life cycle (Local Test, ревью, Released): [https://dev.twitch.tv/docs/extensions/life-cycle/](https://dev.twitch.tv/docs/extensions/designing/)
+- Guidelines & Policies (мобайл 1 МБ): [https://dev.twitch.tv/docs/extensions/guidelines-and-policies/](https://dev.twitch.tv/docs/extensions/guidelines-and-policies/)
+- Mobile-видимость панелей: [https://help.twitch.tv/s/article/how-to-use-extensions](https://help.twitch.tv/s/article/how-to-use-extensions)
+- Статус платформы / deprecation Rig: [https://dev.twitch.tv/docs/product-lifecycle/](https://dev.twitch.tv/docs/product-lifecycle/) и [https://barrycarlyon.co.uk/wordpress/2023/04/04/the-twitch-extensions-developer-rig-is-dead/](https://barrycarlyon.co.uk/wordpress/2023/04/04/the-twitch-extensions-developer-rig-is-dead/)
+- CORS jsDelivr/GitHub: проверено curl-ом (ACAO: \* на raw.githubusercontent.com, cdn.jsdelivr.net, pages)
+- Pop-out как элемент UI Twitch (отключить нельзя): RFC 0008 [https://discuss.dev.twitch.com/t/rfc-0008-pop-out-support-for-extensions/16920](https://discuss.dev.twitch.com/t/rfc-0008-pop-out-support-for-extensions/16920)
+- vite-plugin-singlefile (один вход на билд, multi-entry не поддерживается): [https://github.com/richardtallent/vite-plugin-singlefile](https://discuss.dev.twitch.com/t/rfc-0008-pop-out-support-for-extensions/16920)
 
 ---
 
@@ -295,13 +299,13 @@ CSS-фреймворк не нужен — свои стили на 318px про
 - санитайзер не нужен: в DOM физически попадают только узлы, которые отрисовал наш код.
   Zero зависимостей — это и есть «попроще»: нечего чистить.
 
-**Вариант A — запасной: HTML в выдаче + DOMPurify во вьювере**
+#### **Вариант A — запасной: HTML в выдаче + DOMPurify во вьювере**
 
 ~8–9 КБ gzip, одна строка вызова. Tight-конфиг: `ALLOWED_TAGS` по белому списку,
 `ALLOWED_ATTR = ['href','src','alt','title']`, `ADD_ATTR: ['target']`. Стандарт индустрии,
 mXSS закрыты, поддерживается активнее всех.
 
-**Дополнительный слой — SHA-256 пиннинг (напрямую закрывает «подменят файлы»)**
+#### **Дополнительный слой — SHA-256 пиннинг (напрямую закрывает «подменят файлы»)**
 
 - билдер считает SHA-256 каждого файла выдачи → index.json → конфиг-сегмент;
 - вьювер: `const buf = await (await fetch(url)).arrayBuffer();`
@@ -376,6 +380,7 @@ xboct-git.duckdns.org (Gitea + nginx, TLS валидный). Проверено 
 
 Запрос: пользователи не будут конвертировать md; контент — отдельный репозиторий;
 ссылка на index.json настраивается в панели; whitelist хостов.
+
 - Вьювер грузит **сырые .md** и парсит в рантайме: marked → мини-AST (тот же формат,
   DocRenderer без изменений — по-прежнему без {@html} и санитайзеров; html/таблицы/
   код-блоки пропускаются с warning). Front-matter срезается перед парсингом.

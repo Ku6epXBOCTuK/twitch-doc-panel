@@ -7,7 +7,7 @@
 - [x] Шаг 1. `builder/build.js` — экспорт `buildIndex(dir)` (CLI остаётся)
 - [x] Шаг 2. `vite.config.js` — плагин `dev-content` (живой index.json в dev)
 - [x] Шаг 3. `src/viewer/App.svelte` — dev-fallback + `?theme=`
-- [ ] Шаг 4. `src/config/App.svelte` — предзаполнение в dev
+- [x] Шаг 4. `src/config/App.svelte` — предзаполнение в dev
 - [ ] Шаг 5. `dev.html` — страница-обёртка (панель 318×496 + config + темы)
 - [ ] Шаг 6. README — раздел про dev-аудит
 - [ ] Шаг 7. Фикс ошибки Svelte LS в VSCode (см. раздел «Шаг 7»)

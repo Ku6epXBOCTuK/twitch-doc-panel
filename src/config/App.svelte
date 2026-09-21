@@ -13,7 +13,12 @@
 
   onBroadcasterConfig((c) => {
     savedCfg = c ?? {};
-    if (!indexUrl && c?.indexUrl) indexUrl = c.indexUrl;
+    if (!indexUrl) {
+      if (c?.indexUrl) indexUrl = c.indexUrl;
+      // Dev без Twitch-конфига: предзаполняем локальный индекс — конфиг-вью
+      // кликабельна сразу, без ручного ввода ссылки.
+      else if (import.meta.env.DEV && !isTwitch) indexUrl = '/content/docs/index.json';
+    }
   });
 
   async function load() {

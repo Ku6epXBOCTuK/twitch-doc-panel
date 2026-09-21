@@ -10,12 +10,14 @@ import path from "node:path";
 import process from "node:process";
 import os from "node:os";
 import http from "node:http";
-import { spawn, spawnSync } from "node:child_process";
+import type { AddressInfo } from "node:net";
+import { spawn } from "node:child_process";
 import matter from "gray-matter";
+import { DEFAULT_DOC_ORDER, type DocEntry } from "../src/shared/types.ts";
 
 const root = process.cwd();
 
-function findBrowser() {
+function findBrowser(): string {
 	const candidates = [
 		process.env.CHROME_PATH,
 		"C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -26,7 +28,7 @@ function findBrowser() {
 		),
 		"C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 		"C:/Program Files/Microsoft/Edge/Application/msedge.exe",
-	].filter(Boolean);
+	].filter((c): c is string => Boolean(c));
 	for (const c of candidates) {
 		if (fs.existsSync(c)) return c;
 	}
@@ -47,12 +49,12 @@ const docsDir = path.resolve(
 	root,
 	process.argv[2] ?? path.join("content", "docs"),
 );
-const index = [];
+const index: DocEntry[] = [];
 for (const f of (await fsp.readdir(docsDir)).filter((f) => f.endsWith(".md"))) {
 	const { data } = matter(await fsp.readFile(path.join(docsDir, f), "utf8"));
 	const id = f.replace(/\.md$/, "");
 	fs.copyFileSync(path.join(docsDir, f), path.join(STAGING, f));
-	let header = null;
+	let header: string | null = null;
 	for (const ext of ["png", "jpg", "jpeg", "webp"]) {
 		const bf = `banners/${id}.${ext}`;
 		if (fs.existsSync(path.join(docsDir, bf))) {
@@ -64,8 +66,11 @@ for (const f of (await fsp.readdir(docsDir)).filter((f) => f.endsWith(".md"))) {
 	}
 	index.push({
 		id,
-		title: data.title ?? id,
-		order: Number.isFinite(data.order) ? data.order : 100,
+		title:
+			typeof data.title === "string" && data.title.trim() ? data.title : id,
+		order: Number.isFinite(data.order)
+			? (data.order as number)
+			: DEFAULT_DOC_ORDER,
 		hidden: false,
 		header,
 		url: f,
@@ -130,14 +135,14 @@ fs.writeFileSync(
 );
 
 // 5. Одноразовый сервер
-const MIME = {
+const MIME: Record<string, string> = {
 	".html": "text/html",
 	".json": "application/json",
 	".md": "text/markdown",
 	".png": "image/png",
 };
 const server = http.createServer((req, res) => {
-	const rel = decodeURIComponent(req.url.split("?")[0]);
+	const rel = decodeURIComponent((req.url ?? "").split("?")[0]);
 	const file = path.join(STAGING, rel === "/" ? "index.html" : rel);
 	if (
 		!file.startsWith(STAGING) ||
@@ -154,13 +159,20 @@ const server = http.createServer((req, res) => {
 	);
 	fs.createReadStream(file).pipe(res);
 });
-await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-const port = server.address().port;
+await new Promise<void>((resolve) =>
+	server.listen(0, "127.0.0.1", () => resolve()),
+);
+const port = (server.address() as AddressInfo).port;
 
 // 6. Снимок. ВАЖНО: chrome запускается через асинхронный spawn — сервер живёт
 // в этом же процессе, и синхронный spawnSync заблокировал бы event loop
 // (сервер перестал бы отвечать, chrome завис бы навечно).
-function shoot(w, h, outName, urlPath) {
+function shoot(
+	w: number,
+	h: number,
+	outName: string,
+	urlPath: string,
+): Promise<void> {
 	const out = path.join(OUT_DIR, outName);
 	return new Promise((resolve, reject) => {
 		const child = spawn(
@@ -190,7 +202,7 @@ function shoot(w, h, outName, urlPath) {
 	});
 }
 
-await await shoot(1024, 768, "panel-1024x768.png", "/");
+await shoot(1024, 768, "panel-1024x768.png", "/");
 await shoot(1024, 768, "panel-scrolled-1024x768.png", "/?scroll=1");
 
 server.close();

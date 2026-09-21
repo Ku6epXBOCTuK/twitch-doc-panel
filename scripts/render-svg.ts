@@ -1,5 +1,5 @@
 // Рендер SVG → PNG через headless Chrome/Edge (без дополнительных зависимостей):
-//   node scripts/render-svg.js <source.svg> <width> <height> <out.png>
+//   node scripts/render-svg.ts <source.svg> <width> <height> <out.png>
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 const [svgPathArg, wArg, hArg, outArg] = process.argv.slice(2);
 if (!svgPathArg || !wArg || !hArg || !outArg) {
 	console.error(
-		"Использование: node scripts/render-svg.js <source.svg> <width> <height> <out.png>",
+		"Использование: node scripts/render-svg.ts <source.svg> <width> <height> <out.png>",
 	);
 	process.exit(1);
 }
@@ -21,7 +21,7 @@ const candidates = [
 	path.join(os.homedir(), "AppData/Local/Google/Chrome/Application/chrome.exe"),
 	"C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 	"C:/Program Files/Microsoft/Edge/Application/msedge.exe",
-].filter(Boolean);
+].filter((c): c is string => Boolean(c));
 const browser = candidates.find((c) => fs.existsSync(c));
 if (!browser) {
 	console.error(

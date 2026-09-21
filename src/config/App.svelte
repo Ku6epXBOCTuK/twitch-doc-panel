@@ -1,13 +1,22 @@
-<script>
-  import { onBroadcasterConfig, saveBroadcasterConfig } from '../shared/twitch.js';
-  import { isContentUrl, initialIndexUrl } from '../shared/content.js';
+<script lang="ts">
+  import { onBroadcasterConfig, saveBroadcasterConfig } from '../shared/twitch.ts';
+  import { isContentUrl, initialIndexUrl } from '../shared/content.ts';
+  import type { BroadcasterConfig, DocEntry } from '../shared/types.ts';
+
+  interface ConfigRow {
+    id: string;
+    title: string;
+    hidden: boolean;
+  }
+
+  type Status = 'idle' | 'loading' | 'ready' | 'error';
 
   // Конфиг приходит асинхронно — заполняем поле, когда доедет.
-  let savedCfg = $state({});
+  let savedCfg = $state<Partial<BroadcasterConfig>>({});
 
   let indexUrl = $state('');
-  let list = $state([]);
-  let status = $state('idle'); // idle | loading | ready | error
+  let list = $state<ConfigRow[]>([]);
+  let status = $state<Status>('idle'); // idle | loading | ready | error
   let error = $state('');
   let savedOk = $state(false);
 
@@ -22,7 +31,7 @@
     }
   });
 
-  async function load() {
+  async function load(): Promise<void> {
     savedOk = false;
     error = '';
     const url = indexUrl.trim();
@@ -38,8 +47,9 @@
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const index = await res.json();
-      if (!Array.isArray(index)) throw new Error('ожидался массив документов');
+      const raw: unknown = await res.json();
+      if (!Array.isArray(raw)) throw new Error('ожидался массив документов');
+      const index = raw as DocEntry[];
       const hidden = new Set(savedCfg.hidden ?? []);
       const order = new Map((savedCfg.order ?? []).map((id, i) => [id, i]));
       list = index
@@ -49,18 +59,18 @@
       status = 'ready';
     } catch (e) {
       console.error(e);
-      error = String(e.message ?? e);
+      error = String((e as Error).message ?? e);
       status = 'error';
     }
   }
 
-  function move(i, dir) {
+  function move(i: number, dir: number): void {
     const j = i + dir;
     if (j < 0 || j >= list.length) return;
     [list[i], list[j]] = [list[j], list[i]];
   }
 
-  function save() {
+  function save(): void {
     savedOk = saveBroadcasterConfig({
       v: 1,
       indexUrl: indexUrl.trim(),
@@ -79,7 +89,7 @@
       type="text"
       bind:value={indexUrl}
       placeholder="https://…/index.json"
-      onkeydown={(e) => e.key === 'Enter' && load()}
+      onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && load()}
     />
   </label>
   <p class="muted hint">Абсолютный http(s) URL (например, GitHub Pages или jsDelivr) или путь рядом с виджетом.</p>

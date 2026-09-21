@@ -11,7 +11,7 @@ const root = process.cwd();
 const SRC = path.join(root, "assets", "src");
 const OUT = path.join(root, "assets");
 
-function findBrowser() {
+function findBrowser(): string {
 	const candidates = [
 		process.env.CHROME_PATH,
 		"C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -22,7 +22,7 @@ function findBrowser() {
 		),
 		"C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 		"C:/Program Files/Microsoft/Edge/Application/msedge.exe",
-	].filter(Boolean);
+	].filter((c): c is string => Boolean(c));
 	for (const c of candidates) {
 		if (fs.existsSync(c)) return c;
 	}
@@ -35,7 +35,12 @@ const browser = findBrowser();
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "panel-assets-"));
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), "panel-assets-profile-"));
 
-function svgToPng(svgName, w, h, outName) {
+function svgToPng(
+	svgName: string,
+	w: number,
+	h: number,
+	outName: string,
+): void {
 	const svg = fs.readFileSync(path.join(SRC, svgName), "utf8");
 	const sized = svg.replace("<svg", `<svg width="${w}" height="${h}"`);
 	const htmlPath = path.join(tmp, `${outName}.html`);

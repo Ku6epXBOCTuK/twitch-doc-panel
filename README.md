@@ -31,9 +31,11 @@ node builder/build.js <папка с md>             │    на index.json (л�
 ```txt
 src/viewer/                    вьювер: пейджер документов, тема Twitch
 src/config/                    панель управления: ссылка на index.json, порядок, скрытие
-src/shared/md.js               runtime-конвертация Markdown → мини-AST
+src/shared/types.ts            общие типы: front-matter (DocFrontMatter), index.json (DocEntry),
+                               конфиг канала (BroadcasterConfig), тема
+src/shared/md.ts               runtime-конвертация Markdown → мини-AST (типизированный)
 src/shared/DocRenderer.svelte  рекурсивный рендерер (без {@html})
-builder/build.js               утилита: генерирует index.json по папке с .md
+builder/build.ts               утилита: генерирует index.json по папке с .md
 content/docs/*.md              пример репозитория контента
 app/                           итог для деплоя: viewer.html + config.html
                                (в .gitignore — собирается `npm run build`, на сервер копируется вручную)
@@ -43,6 +45,7 @@ app/                           итог для деплоя: viewer.html + confi
 
 | Команда               | Что делает                                                                |
 | --------------------- | ------------------------------------------------------------------------- |
+| `npm run check`       | svelte-check: типизация всего проекта (Svelte + TS)                       |
 | `npm run build:index` | утилита: `content/docs/*.md` → `content/docs/index.json`                  |
 | `npm run install-cli` | создать/обновить глобальную команду `build-docs` (`~/bin/build-docs.cmd`) |
 | `npm run build`       | фронтенд → `app/` (viewer.html + config.html)                             |
@@ -60,9 +63,10 @@ app/                           итог для деплоя: viewer.html + confi
   документа несколько картинок-баннеров.
 - Сгенерировать индекс: `build-docs <папка с .md>` (глобальная команда из этого
   репо, см. ниже; без аргумента — текущая папка) или
-  `node builder/build.js <папка с .md>` → `index.json` рядом с файлами. Утилита
+  `node builder/build.ts <папка с .md>` → `index.json` рядом с файлами. Утилита
   валидирует тем же парсером, что и панель: html/таблицы/код-блоки —
-  предупреждение, в панели такие блоки пропускаются.
+  предупреждение, в панели такие блоки пропускаются. Типы front-matter и
+  index.json общие с панелью — `src/shared/types.ts`.
 - Поддерживаемый markdown: заголовки, абзацы,
   **жирный**/_курсив_/~~зачёркнутый~~, `код`, списки (включая GFM-чекбоксы),
   ссылки, картинки, цитаты, `---`.

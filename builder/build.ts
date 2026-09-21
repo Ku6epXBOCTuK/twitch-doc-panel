@@ -3,43 +3,48 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
-import { mdToBlocks } from "../src/shared/md.js";
+import { mdToBlocks } from "../src/shared/md.ts";
+import {
+	DEFAULT_DOC_ORDER,
+	type DocEntry,
+	type DocFrontMatter,
+} from "../src/shared/types.ts";
 
 // Генератор index.json для репозитория контента:
-//   node builder/build.js [папка с .md] [куда записать index.json]
+//   node builder/build.ts [папка с .md] [куда записать index.json]
 // Без аргументов — текущая папка. Сканирует .md, читает front-matter
 // (title обязателен; order, hidden) и пишет список документов рядом
 // с файлами. Сами .md не изменяются. Баннеры из подпапки banners/ автоматически
 // становятся header документов (about.md ← banners/about.png|jpg|jpeg|webp).
-// buildIndex(dir) — переиспользуемая функция (мидлварь dev-режима в vite.config.js).
+// buildIndex(dir) — переиспользуемая функция (мидлварь dev-режима в vite.config.ts).
 
 const IMG_EXT = new Set(["png", "jpg", "jpeg", "webp"]);
 const IMG_EXT_ORDER = ["png", "jpg", "jpeg", "webp"];
 
-/**
- * Собирает список документов из .md файлов папки.
- * @returns {Promise<{index: Array, problems: string[]}>}
- * @throws {Error} если в папке нет .md или не собран ни один документ
- */
-export async function buildIndex(dir) {
+// Собирает список документов из .md файлов папки.
+// Бросает Error, если в папке нет .md или не собран ни один документ.
+export async function buildIndex(
+	dir: string,
+): Promise<{ index: DocEntry[]; problems: string[] }> {
 	const files = (await fs.readdir(dir)).filter((f) => f.endsWith(".md"));
 	if (!files.length) {
 		throw new Error(`В ${dir} нет .md файлов.`);
 	}
 
-	const index = [];
-	const problems = [];
+	const index: DocEntry[] = [];
+	const problems: string[] = [];
 
 	for (const fileName of files) {
 		const { data, content } = matter(
 			await fs.readFile(path.join(dir, fileName), "utf8"),
 		);
-		if (typeof data.title !== "string" || !data.title.trim()) {
+		const fm = data as DocFrontMatter;
+		if (typeof fm.title !== "string" || !fm.title.trim()) {
 			problems.push(`${fileName}: во front-matter нет title — файл пропущен`);
 			continue;
 		}
 		// Валидация тем же парсером, что в расширении: неподдерживаемое — предупреждение.
-		const skips = [];
+		const skips: string[] = [];
 		mdToBlocks(content, { onSkip: (type) => skips.push(type) });
 		for (const s of new Set(skips)) {
 			problems.push(
@@ -48,9 +53,11 @@ export async function buildIndex(dir) {
 		}
 		index.push({
 			id: fileName.replace(/\.md$/, ""),
-			title: data.title,
-			order: Number.isFinite(data.order) ? data.order : 1000,
-			hidden: Boolean(data.hidden),
+			title: fm.title,
+			order: Number.isFinite(fm.order)
+				? (fm.order as number)
+				: DEFAULT_DOC_ORDER,
+			hidden: Boolean(fm.hidden),
 			header: null,
 			url: fileName,
 		});
@@ -59,24 +66,24 @@ export async function buildIndex(dir) {
 	// Баннеры: banners/<id>.png|jpg|jpeg|webp → header документа.
 	// Нет папки banners — предупреждение, документы остаются без баннера.
 	const bannersDir = path.join(dir, "banners");
-	let bannerFiles = null;
+	let bannerFiles: string[] | null = null;
 	try {
 		bannerFiles = (await fs.readdir(bannersDir)).filter((f) =>
 			IMG_EXT.has(path.extname(f).toLowerCase().slice(1)),
 		);
 	} catch (e) {
-		if (e.code === "ENOENT") {
+		if ((e as NodeJS.ErrnoException)?.code === "ENOENT") {
 			problems.push("banners/: нет папки — все документы без баннера");
 		} else {
-			problems.push(`banners/: не удалось прочитать (${e.message})`);
+			problems.push(`banners/: не удалось прочитать (${(e as Error).message})`);
 		}
 	}
 
 	if (bannerFiles) {
-		const prio = (f) =>
+		const prio = (f: string) =>
 			IMG_EXT_ORDER.indexOf(path.extname(f).toLowerCase().slice(1));
 		bannerFiles.sort((a, b) => prio(a) - prio(b));
-		const byBase = new Map();
+		const byBase = new Map<string, string>();
 		for (const f of bannerFiles) {
 			const base = f.replace(/\.[^.]+$/, "");
 			const cur = byBase.get(base);
@@ -117,7 +124,7 @@ export async function buildIndex(dir) {
 }
 
 // CLI-обёртка: выполняется только при запуске файла напрямую,
-// не при импорте buildIndex из vite.config.js и т.п.
+// не при импорте buildIndex из vite.config.ts и т.п.
 try {
 	const isDirectRun =
 		import.meta.url === pathToFileURL(process.argv[1] ?? "").href;
@@ -131,7 +138,7 @@ try {
 			console.log(`index.json: ${index.length} документ(ов) → ${out}`);
 			for (const p of problems) console.warn("  ⚠ " + p);
 		} catch (e) {
-			console.error(e.message);
+			console.error((e as Error).message);
 			process.exit(1);
 		}
 	}

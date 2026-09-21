@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { buildIndex } from "./builder/build.js";
+import { buildIndex } from "./builder/build.ts";
 
 // HTTPS в dev — если в certs/ лежит сертификат от mkcert:
 //   mkcert -install && mkcert localhost 127.0.0.1 ::1
@@ -20,13 +20,13 @@ const https =
 // правки .md видны по перезагрузке страницы, `npm run build:index` в dev не нужен.
 // Мидлварь зарегистрирована в теле configureServer (до внутренних мидлварей Vite),
 // поэтому перехватывает запрос раньше статики, которая отдала бы устаревший файл.
-function devContent() {
+function devContent(): Plugin {
 	const indexUrl = "/content/docs/index.json";
 	const contentDir = path.join(process.cwd(), "content", "docs");
 	return {
 		name: "dev-content",
 		apply: "serve",
-		configureServer(server) {
+		configureServer(server: ViteDevServer) {
 			server.middlewares.use(async (req, res, next) => {
 				const url = (req.url ?? "").split("?")[0];
 				if (url !== indexUrl) return next();
@@ -40,7 +40,7 @@ function devContent() {
 				} catch (e) {
 					res.statusCode = 500;
 					res.setHeader("Content-Type", "text/plain; charset=utf-8");
-					res.end(String(e.message ?? e));
+					res.end(String((e as Error).message ?? e));
 				}
 			});
 		},
@@ -49,11 +49,11 @@ function devContent() {
 
 // Dev-only: корень (/) открывает страницу аудита dev.html — не нужно помнить
 // про отдельный путь, npm run dev → https://localhost:8080/
-function devShell() {
+function devShell(): Plugin {
 	return {
 		name: "dev-shell",
 		apply: "serve",
-		configureServer(server) {
+		configureServer(server: ViteDevServer) {
 			server.middlewares.use((req, res, next) => {
 				const url = (req.url ?? "").split("?")[0];
 				if (url !== "/") return next();

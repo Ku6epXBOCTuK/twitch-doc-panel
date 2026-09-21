@@ -1,18 +1,19 @@
-<script>
+<script lang="ts">
   // Рекурсивный рендерер мини-AST. Никакого {@html}: строка = текст
   // (эскейпит Svelte), узел = [tag, ...rest]. Неизвестное — пропускаем с warning.
   // Картинки — только https (http — только localhost: дев-режим и скриншоты).
+  import type { MdAst } from "./md.ts";
 
-  let { nodes = [] } = $props();
+  let { nodes = [] }: { nodes?: MdAst[] } = $props();
 
   const LINK_RE = /^https?:\/\//i;
 
-  function safeImg(src) {
-    if (typeof src !== 'string') return null;
+  function safeImg(src: unknown): string | null {
+    if (typeof src !== "string") return null;
     try {
       const u = new URL(src);
       // http разрешён только для localhost (дев-режим и скриншоты)
-      if (u.protocol === 'https:' || u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+      if (u.protocol === "https:" || u.hostname === "localhost" || u.hostname === "127.0.0.1") {
         return u.href;
       }
       return null;
@@ -21,58 +22,69 @@
     }
   }
 
-  function safeLink(href) {
-    return typeof href === 'string' && LINK_RE.test(href) ? href : null;
+  function safeLink(href: unknown): string | null {
+    return typeof href === "string" && LINK_RE.test(href) ? href : null;
+  }
+
+  function textOf(x: MdAst): string {
+    return typeof x === "string" ? x : "";
+  }
+
+  function listItems(n: MdAst): MdAst[] {
+    if (Array.isArray(n) && (n[0] === "ul" || n[0] === "ol") && Array.isArray(n[1])) {
+      return n[1];
+    }
+    return [];
   }
 </script>
 
-{#snippet children(ns)}
+{#snippet children(ns: MdAst[])}
   {#each ns as c}{@render node(c)}{/each}
 {/snippet}
 
-{#snippet node(n)}
-  {#if typeof n === 'string'}
+{#snippet node(n: MdAst)}
+  {#if typeof n === "string"}
     {n}
   {:else if Array.isArray(n)}
     {@const [tag, ...rest] = n}
-    {#if tag === 'p'}
+    {#if tag === "p"}
       <p>{@render children(rest)}</p>
-    {:else if tag === 'br'}
+    {:else if tag === "br"}
       <br />
-    {:else if tag === 'hr'}
+    {:else if tag === "hr"}
       <hr />
-    {:else if tag === 'em'}
+    {:else if tag === "em"}
       <em>{@render children(rest)}</em>
-    {:else if tag === 'strong'}
+    {:else if tag === "strong"}
       <strong>{@render children(rest)}</strong>
-    {:else if tag === 'del'}
+    {:else if tag === "del"}
       <del>{@render children(rest)}</del>
-    {:else if tag === 'code'}
+    {:else if tag === "code"}
       <code>{rest[0]}</code>
-    {:else if tag === 'a'}
+    {:else if tag === "a"}
       {@const href = safeLink(rest[0])}
       {#if href}
         <a href={href} target="_blank" rel="noopener noreferrer">{@render children(rest.slice(1))}</a>
       {:else}
         {@render children(rest.slice(1))}
       {/if}
-    {:else if tag === 'img'}
+    {:else if tag === "img"}
       {@const src = safeImg(rest[0])}
       {#if src}
-        <img src={src} alt={rest[1] ?? ''} loading="lazy" />
+        <img src={src} alt={textOf(rest[1])} loading="lazy" />
       {/if}
-    {:else if /^h[1-6]$/.test(tag)}
+    {:else if typeof tag === "string" && /^h[1-6]$/.test(tag)}
       <svelte:element this={tag}>{@render children(rest)}</svelte:element>
-    {:else if tag === 'ul' || tag === 'ol'}
+    {:else if tag === "ul" || tag === "ol"}
       <svelte:element this={tag}>
-        {#each rest[0] ?? [] as item}{@render node(item)}{/each}
+        {#each listItems(n) as item}{@render node(item)}{/each}
       </svelte:element>
-    {:else if tag === 'li'}
+    {:else if tag === "li"}
       <li>{@render children(rest)}</li>
-    {:else if tag === 'blockquote'}
+    {:else if tag === "blockquote"}
       <blockquote>{#each rest as b}{@render node(b)}{/each}</blockquote>
     {:else}
-      {@const _warn = console.warn('DocRenderer: неизвестный узел', tag)}
+      {@const _warn = console.warn("DocRenderer: неизвестный узел", tag)}
     {/if}
   {/if}
 {/snippet}

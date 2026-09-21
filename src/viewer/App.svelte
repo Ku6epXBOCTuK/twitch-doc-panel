@@ -1,28 +1,36 @@
-<script>
-  import { onContext, onBroadcasterConfig } from '../shared/twitch.js';
-  import { resolveIndexUrl } from '../shared/content.js';
-  import { mdToBlocks } from '../shared/md.js';
+<script lang="ts">
+  import { onContext, onBroadcasterConfig } from '../shared/twitch.ts';
+  import { resolveIndexUrl } from '../shared/content.ts';
+  import { mdToBlocks, type MdAst, type MdBlock } from '../shared/md.ts';
+  import type { BroadcasterConfig, DocEntry, Theme } from '../shared/types.ts';
   import DocRenderer from '../shared/DocRenderer.svelte';
 
   // ?theme=light|dark — ручное перекрытие темы (аудит тем в dev-обёртке);
   // без параметра тема приходит из Twitch (локально — заглушка dark).
   const qpTheme = new URLSearchParams(globalThis.location?.search ?? '').get('theme');
-  let theme = $state(qpTheme === 'light' || qpTheme === 'dark' ? qpTheme : 'dark');
+  let theme = $state<Theme>(qpTheme === 'light' || qpTheme === 'dark' ? qpTheme : 'dark');
   onContext((ctx) => {
     if (!qpTheme && ctx.theme) theme = ctx.theme;
   });
 
   // Конфиг канала: {v:1, indexUrl, hidden:[], order:[]} — приходит асинхронно
   // и меняется при сохранении в config-вью; подписка ловит оба случая.
-  let cfg = null;
+  let cfg: BroadcasterConfig | null = null;
   let lastCfgJson = '';
 
-  let docs = $state([]);
+  type Status = 'loading' | 'ready' | 'empty' | 'error' | 'need-config' | 'bad-url';
+  interface LoadedDoc {
+    title: string;
+    blocks: MdBlock[];
+  }
+
+  let docs: DocEntry[] = $state([]);
   let current = $state(0);
-  let status = $state('loading'); // loading|ready|empty|error|need-config|bad-url
+  let status = $state<Status>('loading'); // loading|ready|empty|error|need-config|bad-url
   let loadError = $state('');
-  let doc = $state(null);
+  let doc = $state<LoadedDoc | null>(null);
   let docError = $state('');
+  let lastIndexUrl = '';
 
   // ?index=<url> — ручное переопределение (тесты, скриншоты): грузим сразу,
   // не дожидаясь конфиг-сегмента. Фильтр хостов делает CSP версии.
@@ -44,7 +52,8 @@
     });
   }
 
-  async function loadIndex(indexUrl) {
+  async function loadIndex(indexUrl: string): Promise<void> {
+    lastIndexUrl = indexUrl;
     status = 'loading';
     loadError = '';
     try {
@@ -52,8 +61,9 @@
       if (!res.ok) throw new Error(`index.json: HTTP ${res.status}`);
       // res.url учитывает редиректы: относительные пути — от фактического адреса индекса
       const base = new URL('.', res.url).href;
-      let list = await res.json();
-      if (!Array.isArray(list)) throw new Error('index.json: ожидался массив');
+      const raw: unknown = await res.json();
+      if (!Array.isArray(raw)) throw new Error('index.json: ожидался массив');
+      let list: DocEntry[] = raw as DocEntry[];
       list = list.map((d) => ({
         ...d,
         url: new URL(d.url, base).href,
@@ -74,26 +84,37 @@
       await loadDoc(0);
     } catch (e) {
       console.error(e);
-      loadError = String(e.message ?? e);
+      loadError = String((e as Error).message ?? e);
       status = 'error';
     }
   }
 
   // Относительные пути картинок/ссылок из .md резолвим от адреса самого файла.
-  function absolutize(n, base) {
-    if (typeof n === 'string' || !Array.isArray(n)) return n;
+  // Рекурсивно по всем контейнерам (p, заголовки, списки, li, blockquote,
+  // em/strong/del) — абсолютным становится href каждой картинки и ссылки.
+  // Тип узла — «сырой» MdAst: строка или массив (узел или items списка),
+  // форма проверяется в рантайме.
+  function absolutize(n: MdAst, base: string): MdAst {
+    if (typeof n === 'string') return n;
     const [tag, ...rest] = n;
-    if (
-      (tag === 'img' || tag === 'a') &&
-      typeof rest[0] === 'string' &&
-      !/^https?:\/\//i.test(rest[0])
-    ) {
-      return [tag, new URL(rest[0], base).href, ...rest.slice(1)];
+    if (tag === 'img' || tag === 'a') {
+      const href = rest[0];
+      if (typeof href === 'string') {
+        const abs = /^https?:\/\//i.test(href) ? href : new URL(href, base).href;
+        return [tag, abs, ...rest.slice(1)];
+      }
+      return n;
+    }
+    if (tag === 'ul' || tag === 'ol') {
+      const items = rest[0];
+      return Array.isArray(items)
+        ? [tag, ...items.map((li) => absolutize(li, base))]
+        : n;
     }
     return [tag, ...rest.map((x) => absolutize(x, base))];
   }
 
-  async function loadDoc(i) {
+  async function loadDoc(i: number): Promise<void> {
     current = i;
     doc = null;
     docError = '';
@@ -101,21 +122,23 @@
       const res = await fetch(docs[i].url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const docBase = new URL('.', res.url).href;
-      const blocks = mdToBlocks(await res.text()).map((b) => absolutize(b, docBase));
+      const blocks = mdToBlocks(await res.text()).map(
+        (b) => absolutize(b, docBase) as MdBlock,
+      );
       doc = { title: docs[i].title, blocks };
     } catch (e) {
       console.error(e);
-      docError = String(e.message ?? e);
+      docError = String((e as Error).message ?? e);
     }
   }
 
   // --- Оверлей-скроллбар: полупрозрачный, поверх контента, виден только при скролле ---
-  let mainEl = $state(null);
-  let contentEl = $state(null);
+  let mainEl = $state<HTMLElement | null>(null);
+  let contentEl = $state<HTMLElement | null>(null);
   let thumb = $state({ visible: false, top: 0, height: 0 });
-  let hideTimer = null;
+  let hideTimer: ReturnType<typeof setTimeout> | undefined;
 
-  function updateThumb() {
+  function updateThumb(): void {
     const el = mainEl;
     if (!el) return;
     if (el.scrollHeight <= el.clientHeight + 1) {
@@ -128,7 +151,7 @@
     thumb = { ...thumb, height, top };
   }
 
-  function onScroll() {
+  function onScroll(): void {
     updateThumb();
     thumb = { ...thumb, visible: true };
     clearTimeout(hideTimer);
@@ -140,18 +163,20 @@
   // Пересчёт при изменении размеров (смена документа, загрузка картинок)
   const demoScroll = new URLSearchParams(globalThis.location?.search ?? '').has('demoScroll');
   $effect(() => {
-    if (!mainEl || !contentEl) return;
+    const el = mainEl;
+    const content = contentEl;
+    if (!el || !content) return;
     const ro = new ResizeObserver(() => {
       updateThumb();
       // Демо-кадр для скриншотов: прокручиваем контент, чтобы ползунок и тени
       // попали в кадр (включается параметром ?demoScroll=1).
-      if (demoScroll && mainEl.scrollHeight > mainEl.clientHeight && mainEl.scrollTop < 150) {
-        mainEl.scrollTop = 200;
+      if (demoScroll && el.scrollHeight > el.clientHeight && el.scrollTop < 150) {
+        el.scrollTop = 200;
       }
     });
-    ro.observe(mainEl);
-    ro.observe(contentEl);
-    const timer = demoScroll ? setInterval(() => mainEl.scrollBy(0, 2), 150) : null;
+    ro.observe(el);
+    ro.observe(content);
+    const timer = demoScroll ? setInterval(() => el.scrollBy(0, 2), 150) : null;
     return () => {
       ro.disconnect();
       if (timer) clearInterval(timer);
@@ -176,7 +201,7 @@
   {:else if status === 'error'}
     <p class="center">Не удалось загрузить документы.</p>
     <p class="muted center">{loadError}</p>
-    <p class="center"><button onclick={loadIndex}>Повторить</button></p>
+    <p class="center"><button onclick={() => loadIndex(lastIndexUrl)}>Повторить</button></p>
   {:else if status === 'empty'}
     <p class="muted center">Документов пока нет.</p>
   {:else}

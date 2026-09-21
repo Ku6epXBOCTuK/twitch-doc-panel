@@ -68,7 +68,7 @@ jsDelivr при пине-доменах из CSP) или по относител
     панели управления (или константа подставляется вручную).
 - `src/viewer/App.svelte` _(сделано)_ — статус `bad-host` заменён на `bad-url`
   (невалидная схема из конфига), проверка по whitelist убрана; относительные
-  пути из `index.json` (`url`, `header`) резолвятся от адреса индекса; картинки
+  пути из `index.json` (`url`, `banner`) резолвятся от адреса индекса; картинки
   `header-banners/…` и `images/…` из .md — от адреса .md.
 - `src/shared/DocRenderer.svelte` _(сделано)_ — `safeImg`: любой `https:`,
   `http:` только для `localhost`/`127.0.0.1`; `safeLink`: любые http(s).
@@ -85,21 +85,20 @@ jsDelivr при пине-доменах из CSP) или по относител
 1. **Записи в index.json для всех .md** — сканирование корня, `gray-matter`.
    Если нет `title` — подставляется из имени файла + warning.
 2. **Front-matter заголовка** — автоматически ставится
-   `header: header-banners/<id>.<ext>` при наличии файла в `/header-banners` с
-   тем же именем (приоритет расширений: webp → png → jpg → jpeg → gif → svg).
-   Существующий валидный header сохраняется, битый — чинится/убирается с
-   warning.
+   `banner: banners/<id>.<ext>` при наличии файла в `banners/` с тем же именем
+   (приоритет расширений: webp → png → jpg → jpeg → gif → svg). Существующий
+   валидный banner сохраняется, битый — чинится/убирается с warning.
 3. **Чистка контента** — через `marked.lexer` оставляем только то, что умеет
    рисовать панель (heading, paragraph, списки + GFM-чекбоксы, blockquote, hr,
    em/strong/del/codespan, ссылки, картинки, br). Raw HTML, script-теги,
    код-блоки, таблицы удаляются, пересборка из `raw`-фрагментов токенов
    (нормализованный идемпотентный результат). Удалённые конструкции — в отчёт.
-4. **Предупреждения о неиспользуемых файлах** — файлы в `header-banners/` и
-   `images/`, на которые не ссылается ни одна запись (`header` или относительный
-   путь в контенте), и лишние файлы в корне.
+4. **Предупреждения о неиспользуемых файлах** — файлы в `banners/` и `images/`,
+   на которые не ссылается ни одна запись (`banner` или относительный путь в
+   контенте), и лишние файлы в корне.
 5. **Битые ссылки** — относительный путь в .md на отсутствующий файл → warning.
 
-Выход: `index.json` в корне папки — `[{id, title, order, hidden, header, url}]`
+Выход: `index.json` в корне папки — `[{id, title, order, hidden, banner, url}]`
 (та же схема, что понимает виджет).
 
 ## GitHub Actions
@@ -115,7 +114,7 @@ jsDelivr при пине-доменах из CSP) или по относител
 ## Тестовый контент = пользовательская документация
 
 - Папка `content/` в корне репо — корень будущего контент-репо (и раздачи):
-  `*.md` с front-matter (`title`, `order`), `header-banners/`, `images/`,
+  `*.md` с front-matter (`title`, `order`), `banners/`, `images/`,
   сгенерированный `builder`-ом `index.json`. Схема идентична и для Pages, и для
   jsDelivr (файлы в корне репо), и для same-origin (app/ рядом).
 - В `content/` лежит только пользовательская документация по проекту (что за
@@ -138,8 +137,7 @@ jsDelivr при пине-доменах из CSP) или по относител
 
 ## Последовательность шагов
 
-1. content/: пользовательская документация (front-matter), header-banners/,
-   images/
+1. content/: пользовательская документация (front-matter), banners/, images/
 2. LICENSE (MIT), .gitignore, package.json
 3. Билдер: builder/build.js + builder/action.yml + workflow-example
 4. Виджет: content.js, config-вью, scripts/screenshot.js

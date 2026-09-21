@@ -1,8 +1,8 @@
 <script>
-  import { onContext, onBroadcasterConfig } from '../shared/twitch.js';
   import { resolveIndexUrl } from '../shared/content.js';
-  import { mdToBlocks } from '../shared/md.js';
   import DocRenderer from '../shared/DocRenderer.svelte';
+  import { mdToBlocks } from '../shared/md.js';
+  import { onBroadcasterConfig, onContext } from '../shared/twitch.js';
 
   // ?theme=light|dark — ручное перекрытие темы (аудит тем в dev-обёртке);
   // без параметра тема приходит из Twitch (локально — заглушка dark).
@@ -57,7 +57,7 @@
       list = list.map((d) => ({
         ...d,
         url: new URL(d.url, base).href,
-        header: d.header ? new URL(d.header, base).href : null,
+        banner: d.banner ? new URL(d.banner, base).href : null,
       }));
       if (cfg) {
         const hidden = new Set(cfg.hidden ?? []);
@@ -180,13 +180,13 @@
   {:else if status === 'empty'}
     <p class="muted center">Документов пока нет.</p>
   {:else}
-    {#if docs[current]?.header}
-      <img class="header" src={docs[current].header} alt={docs[current].title} />
+    {#if docs[current]?.banner}
+      <img class="banner" src={docs[current].banner} alt={docs[current].title} />
     {/if}
     <div class="scrollwrap">
       <main bind:this={mainEl} onscroll={onScroll}>
         <div bind:this={contentEl}>
-          {#if !docs[current]?.header}
+          {#if !docs[current]?.banner}
             <h1 class="title">{doc?.title ?? docs[current].title}</h1>
           {/if}
           {#if docError}
@@ -242,7 +242,7 @@
     --surface-0: rgba(247, 247, 248, 0);
     --thumb: rgba(83, 83, 95, 0.5);
   }
-  .header {
+  .banner {
     width: 100%;
     height: auto;
     display: block;

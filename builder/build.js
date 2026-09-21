@@ -1,14 +1,15 @@
+import matter from "gray-matter";
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
-import matter from "gray-matter";
 import { mdToBlocks } from "../src/shared/md.js";
 
 // Генератор index.json для репозитория контента:
-//   node builder/build.js <папка с .md> [куда записать index.json]
-// Сканирует .md, читает front-matter (title обязателен; order, hidden, header)
-// и пишет список документов рядом с файлами. Сами .md не изменяются.
+//   node builder/build.js [папка с .md] [куда записать index.json]
+// Без аргументов — текущая папка. Сканирует .md, читает front-matter
+// (title обязателен; order, hidden, header) и пишет список документов рядом
+// с файлами. Сами .md не изменяются.
 // buildIndex(dir) — переиспользуемая функция (мидлварь dev-режима в vite.config.js).
 
 /**
@@ -61,24 +62,23 @@ export async function buildIndex(dir) {
 
 // CLI-обёртка: выполняется только при запуске файла напрямую,
 // не при импорте buildIndex из vite.config.js и т.п.
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-	const dir = process.argv[2];
-	if (!dir) {
-		console.error(
-			"Использование: node builder/build.js <папка с .md> [index.json]",
-		);
-		console.error("Пример: node builder/build.js content/docs");
-		process.exit(1);
-	}
-	const out = process.argv[3] ?? path.join(dir, "index.json");
+try {
+	const isDirectRun =
+		import.meta.url === pathToFileURL(process.argv[1] ?? "").href;
+	if (isDirectRun) {
+		const dir = process.argv[2] ?? process.cwd();
+		const out = process.argv[3] ?? path.join(dir, "index.json");
 
-	try {
-		const { index, problems } = await buildIndex(dir);
-		await fs.writeFile(out, JSON.stringify(index, null, 2));
-		console.log(`index.json: ${index.length} документ(ов) → ${out}`);
-		for (const p of problems) console.warn("  ⚠ " + p);
-	} catch (e) {
-		console.error(e.message);
-		process.exit(1);
+		try {
+			const { index, problems } = await buildIndex(dir);
+			await fs.writeFile(out, JSON.stringify(index, null, 2));
+			console.log(`index.json: ${index.length} документ(ов) → ${out}`);
+			for (const p of problems) console.warn("  ⚠ " + p);
+		} catch (e) {
+			console.error(e.message);
+			process.exit(1);
+		}
 	}
+} catch {
+	// argv[1] не существует (запуск как модуль) — не CLI, молча выходим.
 }

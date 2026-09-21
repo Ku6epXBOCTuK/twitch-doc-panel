@@ -1,12 +1,15 @@
 <script>
-  import { onContext, onBroadcasterConfig } from '../shared/twitch.js';
+  import { onContext, onBroadcasterConfig, isTwitch } from '../shared/twitch.js';
   import { isAllowedUrl, DEFAULT_INDEX_URL } from '../shared/content.js';
   import { mdToBlocks } from '../shared/md.js';
   import DocRenderer from '../shared/DocRenderer.svelte';
 
-  let theme = $state('dark');
+  // ?theme=light|dark — ручное перекрытие темы (аудит тем в dev-обёртке);
+  // без параметра тема приходит из Twitch (локально — заглушка dark).
+  const qpTheme = new URLSearchParams(globalThis.location?.search ?? '').get('theme');
+  let theme = $state(qpTheme === 'light' || qpTheme === 'dark' ? qpTheme : 'dark');
   onContext((ctx) => {
-    if (ctx.theme) theme = ctx.theme;
+    if (!qpTheme && ctx.theme) theme = ctx.theme;
   });
 
   // Конфиг канала: {v:1, indexUrl, hidden:[], order:[]} — приходит асинхронно
@@ -31,6 +34,9 @@
       return cfg.indexUrl;
     }
     if (DEFAULT_INDEX_URL && isAllowedUrl(DEFAULT_INDEX_URL)) return DEFAULT_INDEX_URL;
+    // Dev без Twitch-конфига: локальный индекс; middleware в vite.config.js
+    // пересобирает его на каждый запрос. В проде и внутри Twitch — как раньше.
+    if (import.meta.env.DEV && !isTwitch) return '/content/docs/index.json';
     status = 'need-config';
     return null;
   }

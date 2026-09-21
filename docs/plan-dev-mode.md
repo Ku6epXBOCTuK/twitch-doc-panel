@@ -4,12 +4,13 @@
 
 ## Чеклист
 
-- [ ] Шаг 1. `builder/build.js` — экспорт `buildIndex(dir)` (CLI остаётся)
-- [ ] Шаг 2. `vite.config.js` — плагин `dev-content` (живой index.json в dev)
-- [ ] Шаг 3. `src/viewer/App.svelte` — dev-fallback + `?theme=`
+- [x] Шаг 1. `builder/build.js` — экспорт `buildIndex(dir)` (CLI остаётся)
+- [x] Шаг 2. `vite.config.js` — плагин `dev-content` (живой index.json в dev)
+- [x] Шаг 3. `src/viewer/App.svelte` — dev-fallback + `?theme=`
 - [ ] Шаг 4. `src/config/App.svelte` — предзаполнение в dev
 - [ ] Шаг 5. `dev.html` — страница-обёртка (панель 318×496 + config + темы)
 - [ ] Шаг 6. README — раздел про dev-аудит
+- [ ] Шаг 7. Фикс ошибки Svelte LS в VSCode (см. раздел «Шаг 7»)
 - [ ] Проверка: `npm run dev` → `/dev.html` работает без Twitch-конфига;
       `npm run build` не изменился; `npm run screenshots` не сломался
 
@@ -80,6 +81,20 @@ Twitch (`isTwitch`) **и** `import.meta.env.DEV` → грузим
 
 Обновить раздел «Команды» / «Тест на своём канале»: dev-аудит = `npm run dev` →
 `/dev.html`; Local Test по-прежнему для проверки в консоли Twitch.
+
+### Шаг 7. Фикс ошибки Svelte LS в VSCode
+
+Проблема: при открытии/редактировании `.svelte`-файлов в VSCode расширение
+Svelte пишет ошибку в Problems:
+
+```txt
+Error in vite.config
+
+Error: No Svelte configuration found in vite config. Is @sveltejs/vite-plugin-svelte configured?
+```
+
+Цель: убрать ошибку, чтобы language server работал штатно. Причину выяснить при
+реализации шага.
 
 ## Затрагиваемые файлы
 

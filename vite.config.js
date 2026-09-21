@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { buildIndex } from "./builder/build.js";
 
 // Сапервизор Twitch (supervisor.js) запрашивает документы расширения (viewer/config)
 // в CORS-режиме и проверяет доступность Base URI — без этих заголовков Local Test
@@ -49,8 +50,39 @@ const https =
 		? { key: fs.readFileSync(certKey), cert: fs.readFileSync(certPem) }
 		: undefined;
 
+// Dev-only: index.json для content/docs генерируется на лету при каждом запросе —
+// правки .md видны по перезагрузке страницы, `npm run build:index` в dev не нужен.
+// Мидлварь зарегистрирована в теле configureServer (до внутренних мидлварей Vite),
+// поэтому перехватывает запрос раньше статики, которая отдала бы устаревший файл.
+function devContent() {
+	const indexUrl = "/content/docs/index.json";
+	const contentDir = path.join(process.cwd(), "content", "docs");
+	return {
+		name: "dev-content",
+		apply: "serve",
+		configureServer(server) {
+			server.middlewares.use(async (req, res, next) => {
+				const url = (req.url ?? "").split("?")[0];
+				if (url !== indexUrl) return next();
+				try {
+					const { index, problems } = await buildIndex(contentDir);
+					for (const p of problems) server.config.logger.warn("  ⚠ " + p);
+					res.statusCode = 200;
+					res.setHeader("Content-Type", "application/json; charset=utf-8");
+					res.setHeader("Cache-Control", "no-store");
+					res.end(JSON.stringify(index, null, 2));
+				} catch (e) {
+					res.statusCode = 500;
+					res.setHeader("Content-Type", "text/plain; charset=utf-8");
+					res.end(String(e.message ?? e));
+				}
+			});
+		},
+	};
+}
+
 // Dev-сервер: обслуживает /viewer.html и /config.html на одном origin.
 export default defineConfig({
-	plugins: [svelte(), devCors()],
+	plugins: [svelte(), devCors(), devContent()],
 	server: { port: 8080, ...(https ? { https } : {}) },
 });

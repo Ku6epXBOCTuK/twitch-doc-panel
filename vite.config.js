@@ -81,8 +81,25 @@ function devContent() {
 	};
 }
 
+// Dev-only: корень (/) открывает страницу аудита dev.html — не нужно помнить
+// про отдельный путь, npm run dev → https://localhost:8080/
+function devShell() {
+	return {
+		name: "dev-shell",
+		apply: "serve",
+		configureServer(server) {
+			server.middlewares.use((req, res, next) => {
+				const url = (req.url ?? "").split("?")[0];
+				if (url !== "/") return next();
+				req.url = "/dev.html";
+				next();
+			});
+		},
+	};
+}
+
 // Dev-сервер: обслуживает /viewer.html и /config.html на одном origin.
 export default defineConfig({
-	plugins: [svelte(), devCors(), devContent()],
+	plugins: [svelte(), devCors(), devShell(), devContent()],
 	server: { port: 8080, ...(https ? { https } : {}) },
 });

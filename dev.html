@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ru">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Dev — Twitch Panel</title>
+		<!-- Dev-only обёртка: в билд не попадает (в rollupOptions.input только
+		     viewer.html / config.html). Сerveится Vite dev-сервером как статика. -->
+		<style>
+			html,
+			body {
+				margin: 0;
+				min-height: 100%;
+			}
+			body {
+				background:
+					radial-gradient(
+						900px 520px at 72% -10%,
+						rgba(145, 70, 255, 0.35),
+						transparent 60%
+					),
+					radial-gradient(
+						760px 520px at 8% 112%,
+						rgba(100, 65, 165, 0.45),
+						transparent 60%
+					),
+					#0e0e10;
+				font-family: "Segoe UI", system-ui, sans-serif;
+				color: #efeff1;
+				display: flex;
+				flex-direction: column;
+				min-height: 100vh;
+			}
+			.bar {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16px;
+				padding: 14px 24px;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+				background: rgba(14, 14, 16, 0.6);
+			}
+			.badge {
+				display: inline-block;
+				padding: 6px 16px;
+				border: 1px solid #9146ff;
+				border-radius: 999px;
+				color: #bf94ff;
+				font-size: 13px;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+			}
+			.toggle {
+				display: flex;
+				gap: 6px;
+			}
+			.toggle button {
+				background: #1f1f23;
+				color: #adadb8;
+				border: 1px solid #3a3a3d;
+				border-radius: 6px;
+				height: 30px;
+				padding: 0 14px;
+				font-size: 0.9em;
+				cursor: pointer;
+			}
+			.toggle button.on {
+				background: #9146ff;
+				border-color: #9146ff;
+				color: #fff;
+			}
+			.toggle button:hover {
+				filter: brightness(1.2);
+			}
+			main {
+				flex: 1;
+				display: flex;
+				align-items: flex-start;
+				justify-content: center;
+				gap: 64px;
+				padding: 48px 24px;
+				flex-wrap: wrap;
+			}
+			h2 {
+				font-size: 15px;
+				font-weight: 600;
+				color: #adadb8;
+				margin: 0 0 12px;
+			}
+			h2 small {
+				font-weight: 400;
+				color: #53535f;
+				margin-left: 8px;
+			}
+			.card {
+				width: 318px;
+				height: 496px;
+				border-radius: 10px;
+				overflow: hidden;
+				box-shadow:
+					0 30px 80px rgba(0, 0, 0, 0.55),
+					0 0 0 1px rgba(255, 255, 255, 0.08);
+			}
+			.card iframe {
+				width: 318px;
+				height: 496px;
+				border: 0;
+				display: block;
+			}
+			.card.wide {
+				width: 640px;
+				height: 640px;
+			}
+			.card.wide iframe {
+				width: 640px;
+				height: 640px;
+			}
+			.hint {
+				margin: 0;
+				font-size: 13px;
+				color: #53535f;
+				padding: 0 24px 20px;
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<header class="bar">
+			<span class="badge">Dev · Twitch Panel</span>
+			<div class="toggle" role="group" aria-label="Тема">
+				<button data-theme="dark" class="on">Тёмная</button>
+				<button data-theme="light">Светлая</button>
+			</div>
+		</header>
+		<main>
+			<section>
+				<h2>viewer <small>318×496</small></h2>
+				<div class="card">
+					<iframe id="viewer" src="/viewer.html" title="viewer"></iframe>
+				</div>
+			</section>
+			<section>
+				<h2>config</h2>
+				<div class="card wide">
+					<iframe id="config" src="/config.html" title="config"></iframe>
+				</div>
+			</section>
+		</main>
+		<p class="hint">
+			Правки content/docs/*.md подхватываются по перезагрузке страницы; индекс
+			пересобирается на лету. Local Test в консоли Twitch — для проверки в
+			контексте.
+		</p>
+		<script>
+			const viewer = document.getElementById("viewer");
+			const buttons = [...document.querySelectorAll(".toggle button")];
+			function setTheme(t) {
+				// ?theme= поддерживается вьювером (шаг 3): перекрытие темы для аудита.
+				viewer.src = "/viewer.html?theme=" + t;
+				for (const b of buttons)
+					b.classList.toggle("on", b.dataset.theme === t);
+			}
+			for (const b of buttons) b.onclick = () => setTheme(b.dataset.theme);
+		</script>
+	</body>
+</html>

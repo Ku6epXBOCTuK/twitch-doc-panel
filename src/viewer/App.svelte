@@ -1,6 +1,6 @@
 <script>
-  import { onContext, onBroadcasterConfig, isTwitch } from '../shared/twitch.js';
-  import { isAllowedUrl, DEFAULT_INDEX_URL } from '../shared/content.js';
+  import { onContext, onBroadcasterConfig } from '../shared/twitch.js';
+  import { isAllowedUrl, resolveIndexUrl } from '../shared/content.js';
   import { mdToBlocks } from '../shared/md.js';
   import DocRenderer from '../shared/DocRenderer.svelte';
 
@@ -24,23 +24,6 @@
   let doc = $state(null);
   let docError = $state('');
 
-  function resolveIndexUrl() {
-    if (cfg?.indexUrl) {
-      if (!isAllowedUrl(cfg.indexUrl)) {
-        loadError = cfg.indexUrl;
-        status = 'bad-host';
-        return null;
-      }
-      return cfg.indexUrl;
-    }
-    if (DEFAULT_INDEX_URL && isAllowedUrl(DEFAULT_INDEX_URL)) return DEFAULT_INDEX_URL;
-    // Dev без Twitch-конфига: локальный индекс; middleware в vite.config.js
-    // пересобирает его на каждый запрос. В проде и внутри Twitch — как раньше.
-    if (import.meta.env.DEV && !isTwitch) return '/content/docs/index.json';
-    status = 'need-config';
-    return null;
-  }
-
   // ?index=<url> — ручное переопределение (тесты, скриншоты): грузим сразу,
   // не дожидаясь конфиг-сегмента. Хост всё равно проверяется по whitelist.
   const qp = new URLSearchParams(globalThis.location?.search ?? '').get('index');
@@ -57,8 +40,12 @@
       if (json === lastCfgJson) return;
       lastCfgJson = json;
       cfg = c;
-      const indexUrl = resolveIndexUrl();
-      if (indexUrl) loadIndex(indexUrl);
+      const r = resolveIndexUrl(c);
+      if (r.error) {
+        status = r.error; // 'bad-host' | 'need-config' — совпадает со статусами вьюера
+        loadError = r.detail;
+      }
+      if (r.url) loadIndex(r.url);
     });
   }
 

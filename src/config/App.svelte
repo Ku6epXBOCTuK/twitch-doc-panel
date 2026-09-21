@@ -1,6 +1,6 @@
 <script>
-  import { isTwitch, onBroadcasterConfig, saveBroadcasterConfig } from '../shared/twitch.js';
-  import { isAllowedUrl, ALLOWED_CONTENT_HOSTS } from '../shared/content.js';
+  import { onBroadcasterConfig, saveBroadcasterConfig } from '../shared/twitch.js';
+  import { isAllowedUrl, ALLOWED_CONTENT_HOSTS, initialIndexUrl } from '../shared/content.js';
 
   // Конфиг приходит асинхронно — заполняем поле, когда доедет.
   let savedCfg = $state({});
@@ -14,10 +14,11 @@
   onBroadcasterConfig((c) => {
     savedCfg = c ?? {};
     if (!indexUrl) {
-      if (c?.indexUrl) indexUrl = c.indexUrl;
-      // Dev без Twitch-конфига: предзаполняем локальный индекс — конфиг-вью
-      // кликабельна сразу, без ручного ввода ссылки.
-      else if (import.meta.env.DEV && !isTwitch) indexUrl = '/content/docs/index.json';
+      const url = initialIndexUrl(c);
+      if (url) {
+        indexUrl = url;
+        load();
+      }
     }
   });
 
@@ -109,8 +110,6 @@
       <button onclick={save}>Сохранить</button>
       {#if savedOk}
         <span class="ok">Сохранено</span>
-      {:else if !isTwitch}
-        <span class="muted">Локальный режим: сохранение доступно только в Creator Dashboard.</span>
       {/if}
     </div>
   {:else if error}

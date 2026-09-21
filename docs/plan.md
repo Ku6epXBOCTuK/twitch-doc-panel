@@ -1,7 +1,8 @@
 # План рефакторинга: виджет + билдер (монорепо), контент отдельным репо
 
 Статус: план согласован, реализация по шагам (каждый шаг — отдельное
-обсуждение/коммит).
+обсуждение/коммит). Выполнено: удаление whitelist'а хостов из виджета (Сущность
+1: content.js, viewer, DocRenderer, config-вью).
 
 ## Решение по архитектуре
 
@@ -59,19 +60,20 @@ jsDelivr при пине-доменах из CSP) или по относител
 хостинг). В консоли Twitch на версию декларируются домены CSP (см. выше).
 `index.json` — в корне раздачи Pages-сайта/репо.
 
-- `src/shared/content.js`
-  - `ALLOWED_CONTENT_HOSTS` / `isAllowedUrl` удаляются;
+- `src/shared/content.js` _(сделано)_
+  - `ALLOWED_CONTENT_HOSTS` / `isAllowedUrl` удалены;
   - `isContentUrl()` — проверка схемы: абсолютные — только http/https,
     относительные пути разрешены (резолвятся от origin виджета);
   - `DEFAULT_INDEX_URL = ''` — дефолта нет, ссылку задаёт владелец канала в
     панели управления (или константа подставляется вручную).
-- `src/viewer/App.svelte` — убрать статус `bad-host` и проверку по whitelist,
-  оставить проверку схемы через `isContentUrl`; относительные пути из
-  `index.json` (`url`, `header`) резолвятся от адреса индекса; картинки
+- `src/viewer/App.svelte` _(сделано)_ — статус `bad-host` заменён на `bad-url`
+  (невалидная схема из конфига), проверка по whitelist убрана; относительные
+  пути из `index.json` (`url`, `header`) резолвятся от адреса индекса; картинки
   `header-banners/…` и `images/…` из .md — от адреса .md.
-- `src/shared/DocRenderer.svelte` — `safeImg`: любой `https:`, `http:` только
-  для `localhost`/`127.0.0.1`; `safeLink`: любые http(s).
-- `src/config/App.svelte` — подсказка про URL вместо «белого списка хостов».
+- `src/shared/DocRenderer.svelte` _(сделано)_ — `safeImg`: любой `https:`,
+  `http:` только для `localhost`/`127.0.0.1`; `safeLink`: любые http(s).
+- `src/config/App.svelte` _(сделано)_ — подсказка про URL вместо «белого списка
+  хостов».
 - `scripts/screenshot.js` — дефолтная папка контента `content`; копирование
   используемых картинок в стейджинг.
 

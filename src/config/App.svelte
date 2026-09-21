@@ -1,6 +1,6 @@
 <script>
   import { onBroadcasterConfig, saveBroadcasterConfig } from '../shared/twitch.js';
-  import { isAllowedUrl, ALLOWED_CONTENT_HOSTS, initialIndexUrl } from '../shared/content.js';
+  import { isContentUrl, initialIndexUrl } from '../shared/content.js';
 
   // Конфиг приходит асинхронно — заполняем поле, когда доедет.
   let savedCfg = $state({});
@@ -30,8 +30,8 @@
       error = 'Укажи ссылку на index.json';
       return;
     }
-    if (!isAllowedUrl(url)) {
-      error = `Хост не в белом списке (разрешены: ${ALLOWED_CONTENT_HOSTS.join(', ')})`;
+    if (!isContentUrl(url)) {
+      error = 'Ссылка должна быть http(s) URL или относительным путём';
       return;
     }
     status = 'loading';
@@ -82,7 +82,7 @@
       onkeydown={(e) => e.key === 'Enter' && load()}
     />
   </label>
-  <p class="muted hint">Белый список хостов: {ALLOWED_CONTENT_HOSTS.join(', ')}</p>
+  <p class="muted hint">Абсолютный http(s) URL (например, GitHub Pages или jsDelivr) или путь рядом с виджетом.</p>
   <button onclick={load}>Загрузить список</button>
 
   {#if status === 'loading'}

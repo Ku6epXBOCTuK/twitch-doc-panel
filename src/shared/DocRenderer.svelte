@@ -1,8 +1,7 @@
 <script>
   // Рекурсивный рендерер мини-AST. Никакого {@html}: строка = текст
   // (эскейпит Svelte), узел = [tag, ...rest]. Неизвестное — пропускаем с warning.
-  // Картинки — только с хостов из белого списка (даже если md подменён).
-  import { ALLOWED_CONTENT_HOSTS } from './content.js';
+  // Картинки — только https (http — только localhost: дев-режим и скриншоты).
 
   let { nodes = [] } = $props();
 
@@ -12,7 +11,6 @@
     if (typeof src !== 'string') return null;
     try {
       const u = new URL(src);
-      if (!ALLOWED_CONTENT_HOSTS.includes(u.hostname)) return null;
       // http разрешён только для localhost (дев-режим и скриншоты)
       if (u.protocol === 'https:' || u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
         return u.href;

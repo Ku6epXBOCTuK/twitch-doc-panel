@@ -1,6 +1,6 @@
 <script>
   import { onContext, onBroadcasterConfig } from '../shared/twitch.js';
-  import { isAllowedUrl, resolveIndexUrl } from '../shared/content.js';
+  import { resolveIndexUrl } from '../shared/content.js';
   import { mdToBlocks } from '../shared/md.js';
   import DocRenderer from '../shared/DocRenderer.svelte';
 
@@ -19,21 +19,16 @@
 
   let docs = $state([]);
   let current = $state(0);
-  let status = $state('loading'); // loading|ready|empty|error|need-config|bad-host
+  let status = $state('loading'); // loading|ready|empty|error|need-config|bad-url
   let loadError = $state('');
   let doc = $state(null);
   let docError = $state('');
 
   // ?index=<url> — ручное переопределение (тесты, скриншоты): грузим сразу,
-  // не дожидаясь конфиг-сегмента. Хост всё равно проверяется по whitelist.
+  // не дожидаясь конфиг-сегмента. Фильтр хостов делает CSP версии.
   const qp = new URLSearchParams(globalThis.location?.search ?? '').get('index');
   if (qp) {
-    if (!isAllowedUrl(qp)) {
-      loadError = qp;
-      status = 'bad-host';
-    } else {
-      loadIndex(qp);
-    }
+    loadIndex(qp);
   } else {
     onBroadcasterConfig((c) => {
       const json = JSON.stringify(c ?? null);
@@ -42,7 +37,7 @@
       cfg = c;
       const r = resolveIndexUrl(c);
       if (r.error) {
-        status = r.error; // 'bad-host' | 'need-config' — совпадает со статусами вьюера
+        status = r.error; // 'bad-url' | 'need-config' — совпадает со статусами вьюера
         loadError = r.detail;
       }
       if (r.url) loadIndex(r.url);
@@ -175,8 +170,8 @@
     <p class="muted center">
       Открой панель управления расширением и укажи ссылку на index.json.
     </p>
-  {:else if status === 'bad-host'}
-    <p class="center">Хост контента не в белом списке.</p>
+  {:else if status === 'bad-url'}
+    <p class="center">Ссылка на контент должна быть http(s) URL или относительным путём.</p>
     <p class="muted center">{loadError}</p>
   {:else if status === 'error'}
     <p class="center">Не удалось загрузить документы.</p>

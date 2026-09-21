@@ -467,4 +467,5 @@ CORS не нужен вовсе.
   задаётся в config-вью.
 - Whitelist хостов: ALLOWED_CONTENT_HOSTS в src/shared/content.js — index.json,
   .md и картинки грузятся только с этих хостов; ссылки — любые http(s) в новой
-  вкладке.
+  вкладке. _(Устарело: whitelist удалён, фильтр хостов — CSP версии в консоли
+  Twitch.)_

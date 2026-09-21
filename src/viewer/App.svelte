@@ -181,12 +181,14 @@
     <p class="muted center">Документов пока нет.</p>
   {:else}
     {#if docs[current]?.header}
-      <img class="header" src={docs[current].header} alt="" />
+      <img class="header" src={docs[current].header} alt={docs[current].title} />
     {/if}
     <div class="scrollwrap">
       <main bind:this={mainEl} onscroll={onScroll}>
         <div bind:this={contentEl}>
-          <h1 class="title">{doc?.title ?? docs[current].title}</h1>
+          {#if !docs[current]?.header}
+            <h1 class="title">{doc?.title ?? docs[current].title}</h1>
+          {/if}
           {#if docError}
             <p class="muted">Не удалось загрузить документ ({docError}).</p>
           {:else if doc}

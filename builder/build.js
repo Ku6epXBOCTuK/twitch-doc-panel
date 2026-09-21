@@ -57,7 +57,7 @@ export async function buildIndex(dir) {
 	}
 
 	// Баннеры: banners/<id>.png|jpg|jpeg|webp → header документа.
-	// Нет папки banners — шаг пропускается.
+	// Нет папки banners — предупреждение, документы остаются без баннера.
 	const bannersDir = path.join(dir, "banners");
 	let bannerFiles = null;
 	try {
@@ -65,7 +65,9 @@ export async function buildIndex(dir) {
 			IMG_EXT.has(path.extname(f).toLowerCase().slice(1)),
 		);
 	} catch (e) {
-		if (e.code !== "ENOENT") {
+		if (e.code === "ENOENT") {
+			problems.push("banners/: нет папки — все документы без баннера");
+		} else {
 			problems.push(`banners/: не удалось прочитать (${e.message})`);
 		}
 	}

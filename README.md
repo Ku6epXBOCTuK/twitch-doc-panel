@@ -7,7 +7,7 @@ Twitch Panel Extension: одна панель (318×496), внутри — не�
 
 ## Как это устроено
 
-```
+```txt
 РЕПОЗИТОРИЙ КОНТЕНТА (отдельный)          РАСШИРЕНИЕ (этот репозиторий)
   docs/*.md  +  index.json                 app/viewer.html + app/config.html
       ↑ утилита составляет список              │
@@ -24,11 +24,11 @@ node builder/build.js <папка с md>             │    на index.json (х�
 - Ссылка на index.json задаётся в панели управления (config-вью) и хранится в
   конфиг-сегменте канала — менять можно без пересборки.
 - Белый список хостов: `src/shared/content.js` → `ALLOWED_CONTENT_HOSTS`
-  (сейчас: `raw.githubusercontent.com`, `xboct-git.duckdns.org`).
+  (сейчас: GitHub, Gitea, хостинг контента; `localhost` — для dev и скриншотов).
 
 ## Структура
 
-```
+```txt
 src/viewer/                    вьювер: пейджер документов, тема Twitch
 src/config/                    панель управления: ссылка на index.json, порядок, скрытие
 src/shared/md.js               runtime-конвертация Markdown → мини-AST
@@ -41,11 +41,11 @@ app/                           итог для деплоя: viewer.html + confi
 
 ## Команды
 
-| Команда               | Что делает                                                       |
-| --------------------- | ---------------------------------------------------------------- |
-| `npm run build:index` | утилита: `content/docs/*.md` → `content/docs/index.json`         |
-| `npm run build`       | фронтенд → `app/` (viewer.html + config.html)                    |
-| `npm run dev`         | dev-сервер :8080 (https, если в `certs/` есть mkcert-сертификат) |
+| Команда               | Что делает                                               |
+| --------------------- | -------------------------------------------------------- |
+| `npm run build:index` | утилита: `content/docs/*.md` → `content/docs/index.json` |
+| `npm run build`       | фронтенд → `app/` (viewer.html + config.html)            |
+| `npm run dev`         | dev-сервер :8080, корень `/` — страница аудита верстки   |
 
 ## Репозиторий контента
 
@@ -66,6 +66,17 @@ app/                           итог для деплоя: viewer.html + confi
 со слэшем на конце. Контент расширению не нужен — он грузится с репозитория
 контента.
 
+## Dev-аудит верстки (без Twitch)
+
+1. `npm run dev` → `https://localhost:8080/` — корень открывает страницу аудита:
+   viewer в реальном размере 318×496, рядом config-вью, переключатель
+   тёмной/светлой темы.
+2. Индекс `content/docs` пересобирается на лету при каждом запросе: правишь
+   `.md` → перезагрузка страницы. `npm run build:index` в dev не нужен.
+3. Twitch-конфига в dev нет — работает заглушка: «Сохранить» в config-вью пишет
+   в localStorage (`dev:broadcaster-config`), viewer тут же перечитывает список
+   с порядком и скрытием.
+
 ## Тест на своём канале (Local Test)
 
 1. `npm run dev` — окно держать открытым; строка `Local:` покажет адрес и схему
@@ -75,6 +86,10 @@ app/                           итог для деплоя: viewer.html + confi
 3. Extension Manager → Activate. Панель управления — Configure у расширения:
    вписать ссылку на index.json → Загрузить список → порядок/скрытие →
    Сохранить.
+
+Local Test работает на тех же дев-моках, что и dev-аудит: конфиг-сегмент рига не
+читается, «Сохранить» в config-вью пишет в localStorage. Реальный конфиг Twitch
+проверять только выкладкой на канал.
 
 Если config-вью не может загрузить index.json по CSP — добавь хост контента в
 connect-src allowlist расширения. Pop-out отключить нельзя — кнопка UI Twitch.

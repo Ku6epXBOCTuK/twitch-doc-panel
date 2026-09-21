@@ -1,24 +1,23 @@
 # Dev-режим для визуального аудита (без Twitch-конфига)
 
-Статус: ядро реализовано. Осталось: README, фикс Svelte LS в VSCode, финальная
-проверка.
+Статус: готово — ядро, README и фикс Svelte LS в VSCode.
 
 ## Чеклист
 
 - [x] Шаг 1. `builder/build.js` — экспорт `buildIndex(dir)` (CLI остаётся)
-- [x] Шаг 2. `vite.config.js` — плагин `dev-content` (живой index.json в dev)
+- [x] Шаг 2. `vite.config.js` — плагины `dev-content` / `dev-cors` / `dev-shell`
+      (живой index.json, CORS для Local Test, `/` → `dev.html`)
 - [x] Шаг 3. `src/viewer/App.svelte` — `?theme=light|dark` для аудита тем
 - [x] Шаг 4. `src/config/App.svelte` — предзаполнение поля индекса в dev
 - [x] Шаг 5. `dev.html` — страница-обёртка (viewer 318×496 + config + темы)
-- [x] Шаг 6. `dev.html` открывается по корню `/` (плагин `dev-shell` в
-      vite.config.js)
-- [x] Шаг 7. Единая dev-логика: только `content.js` и `twitch.js` через
+- [x] Шаг 6. Единая dev-логика: только `content.js` и `twitch.js` через
       `import.meta.env.DEV`
-- [ ] Шаг 8. README — раздел про dev-аудит
-- [ ] Шаг 9. Фикс ошибки Svelte LS в VSCode (см. раздел «Шаг 9»)
-- [ ] Проверка: `npm run dev` → `https://localhost:8080/` работает без
-      Twitch-конфига; `npm run build` не изменился; `npm run screenshots` не
-      сломался
+- [x] Шаг 7. README — раздел про dev-аудит
+- [x] Шаг 8. `svelte.config.js` — фикс ошибки Svelte LS в VSCode (раздел «Шаг
+      8»)
+- [x] Проверка: `npm run dev` → `https://localhost:8080/` — корень отдаёт
+      страницу аудита, viewer и живой index.json отвечают 200; `npm run build`
+      ок; `npm run screenshots` ок
 
 ## Проблема
 
@@ -104,17 +103,19 @@ Svelte-компоненты вообще не знают про dev — они �
 Следствие: Local Test тоже работает на дев-моках (конфиг-сегмент рига не
 читается). Реальный конфиг Twitch проверять выкладкой на канал.
 
-## Осталось
+## Завершающие шаги
 
-### Шаг 7. README
+### Шаг 7. README — сделано
 
-Обновить раздел «Команды» / «Тест на своём канале»: dev-аудит = `npm run dev` →
-`https://localhost:8080/`; Local Test по-прежнему для проверки в консоли Twitch.
+Добавлен раздел «Dev-аудит верстки (без Twitch)» (`npm run dev` →
+`https://localhost:8080/`, живой индекс, дев-заглушка конфига в localStorage).
+Обновлены таблица команд, белый список хостов и Local Test (работает на тех же
+дев-моках; реальный конфиг Twitch — только выкладкой на канал).
 
-### Шаг 8. Фикс ошибки Svelte LS в VSCode
+### Шаг 8. Фикс ошибки Svelte LS в VSCode — сделано
 
-Проблема: при открытии/редактировании `.svelte`-файлов в VSCode расширение
-Svelte пишет ошибку в Problems:
+Проблема: при открытии/редактировании `.svelte`-файлов расширение Svelte пишет
+ошибку в Problems:
 
 ```txt
 Error in vite.config
@@ -122,8 +123,19 @@ Error in vite.config
 Error: No Svelte configuration found in vite config. Is @sveltejs/vite-plugin-svelte configured?
 ```
 
-Цель: убрать ошибку, чтобы language server работал штатно. Причину выяснить при
-реализации шага.
+Причина: LS (svelte-language-server, внутри него `@sveltejs/load-config`)
+резолвит `vite.config.js` через `vite.resolveConfig` и ищет там сабплагин с
+именем `vite-plugin-svelte:config` — он появился в
+`@sveltejs/vite-plugin-svelte` v6, а в проекте v5.1.1 с одним плагином
+`vite-plugin-svelte`. Не найдя сабплагин и не найдя рядом `svelte.config.js`, LS
+помечает конфиг `loadConfigError` и рисует диагностку на каждом `.svelte`-файле
+(`getDiagnostics.js` → «Error in vite.config»).
+
+Решение: добавлен корневой `svelte.config.js` (пустой `compilerOptions`,
+препроцессоров нет). LS берёт конфиг напрямую из него — `vite.config.js` больше
+не участвует. Для самого `vite-plugin-svelte@5.1.1` файл ни на что не влияет
+(дефолтные опции и так используются). При апгрейде до vite-plugin-svelte v6
+(нужен vite 7) файл можно будет удалить.
 
 ## Затрагиваемые файлы
 
@@ -134,6 +146,7 @@ Error: No Svelte configuration found in vite config. Is @sveltejs/vite-plugin-sv
 - `src/shared/content.js`
 - `src/shared/twitch.js`
 - `dev.html`
+- `svelte.config.js` (новый)
 - `README.md`
 
 ## Риски

@@ -10,29 +10,30 @@
 - [ ] Шаг 4. `src/config/App.svelte` — предзаполнение в dev
 - [ ] Шаг 5. `dev.html` — страница-обёртка (панель 318×496 + config + темы)
 - [ ] Шаг 6. README — раздел про dev-аудит
-- [ ] Проверка: `npm run dev` → `/dev.html` работает без Twitch-конфига; `npm run build` не изменился; `npm run screenshots` не сломался
+- [ ] Проверка: `npm run dev` → `/dev.html` работает без Twitch-конфига;
+      `npm run build` не изменился; `npm run screenshots` не сломался
 
 ## Проблема
 
 Вне Local Test панель бесполезна: вьювер берёт ссылку на `index.json` только из
-конфиг-сегмента Twitch (или `?index=`), поэтому показывает «Ссылка на контент
-не задана». Кроме того, `index.json` для `content/docs` надо генерировать
-вручную (`npm run build:index`). Верстку невозможно аудировать без Twitch-консоли.
+конфиг-сегмента Twitch (или `?index=`), поэтому показывает «Ссылка на контент не
+задана». Кроме того, `index.json` для `content/docs` надо генерировать вручную
+(`npm run build:index`). Верстку невозможно аудировать без Twitch-консоли.
 
 ## Идея
 
 `npm run dev` → открыть `http://localhost:8080/dev.html` → панель в реальном
-размере 318×496 с живым контентом из `content/docs/`. Без Twitch-конфига,
-без ручной генерации индекса. Local Test в консоли остаётся для проверки
-в контексте Twitch.
+размере 318×496 с живым контентом из `content/docs/`. Без Twitch-конфига, без
+ручной генерации индекса. Local Test в консоли остаётся для проверки в контексте
+Twitch.
 
 ## Шаги
 
 ### Шаг 1. `builder/build.js` — рефакторинг
 
-Вынести генерацию индекса в экспортируемую функцию `buildIndex(dir)`
-(возвращает массив). CLI-обёртка остаётся как есть. Нужна, чтобы переиспользовать
-логику в Vite-мидлвари.
+Вынести генерацию индекса в экспортируемую функцию `buildIndex(dir)` (возвращает
+массив). CLI-обёртка остаётся как есть. Нужна, чтобы переиспользовать логику в
+Vite-мидлвари.
 
 ### Шаг 2. `vite.config.js` — плагин `dev-content`
 
@@ -42,16 +43,17 @@ Middleware на `GET /content/docs/index.json`: на каждый запрос �
 
 - `npm run build:index` для dev больше не нужен — правишь `.md`, перезагружаешь
   страницу, список актуален.
-- Статику (`*.md`, картинки заголовков) Vite dev и так отдаёт из корня —
-  ничего настраивать не надо.
+- Статику (`*.md`, картинки заголовков) Vite dev и так отдаёт из корня — ничего
+  настраивать не надо.
 
 ### Шаг 3. `src/viewer/App.svelte` — dev-fallback
 
 В `resolveIndexUrl()` (~строка 24): если `cfg?.indexUrl` нет **и** мы не внутри
-Twitch (`isTwitch`) **и** `import.meta.env.DEV` → грузим `/content/docs/index.json`
-(относительный URL → hostname `localhost`, он уже в белом списке
-`src/shared/content.js`). Статус `need-config` остаётся только внутри Twitch.
-Guard `import.meta.env.DEV` гарантирует, что прод-сборка ведёт себя как раньше.
+Twitch (`isTwitch`) **и** `import.meta.env.DEV` → грузим
+`/content/docs/index.json` (относительный URL → hostname `localhost`, он уже в
+белом списке `src/shared/content.js`). Статус `need-config` остаётся только
+внутри Twitch. Guard `import.meta.env.DEV` гарантирует, что прод-сборка ведёт
+себя как раньше.
 
 Плюс мелочь для аудита тем: параметр `?theme=light|dark` перекрывает тему
 (сейчас локально всегда dark).

@@ -42,7 +42,7 @@ const OUT_DIR = path.join(root, "assets", "screenshots");
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 // 2. Контент: .md из папки (аргумент, по умолчанию content/docs) + index.json.
-//    Если у документа во front-matter указан header — картинка копируется в стейджинг.
+//    Баннер banners/<id>.png|jpg|jpeg|webp копируется в стейджинг и становится header.
 const docsDir = path.resolve(
 	root,
 	process.argv[2] ?? path.join("content", "docs"),
@@ -53,11 +53,13 @@ for (const f of (await fsp.readdir(docsDir)).filter((f) => f.endsWith(".md"))) {
 	const id = f.replace(/\.md$/, "");
 	fs.copyFileSync(path.join(docsDir, f), path.join(STAGING, f));
 	let header = null;
-	if (typeof data.header === "string" && data.header) {
-		const hp = path.resolve(docsDir, data.header);
-		if (fs.existsSync(hp)) {
-			fs.copyFileSync(hp, path.join(STAGING, data.header));
-			header = data.header;
+	for (const ext of ["png", "jpg", "jpeg", "webp"]) {
+		const bf = `banners/${id}.${ext}`;
+		if (fs.existsSync(path.join(docsDir, bf))) {
+			fs.mkdirSync(path.join(STAGING, "banners"), { recursive: true });
+			fs.copyFileSync(path.join(docsDir, bf), path.join(STAGING, bf));
+			header = bf;
+			break;
 		}
 	}
 	index.push({

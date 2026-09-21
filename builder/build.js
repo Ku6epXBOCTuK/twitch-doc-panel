@@ -8,9 +8,13 @@ import { mdToBlocks } from "../src/shared/md.js";
 // Генератор index.json для репозитория контента:
 //   node builder/build.js [папка с .md] [куда записать index.json]
 // Без аргументов — текущая папка. Сканирует .md, читает front-matter
-// (title обязателен; order, hidden, header) и пишет список документов рядом
-// с файлами. Сами .md не изменяются.
+// (title обязателен; order, hidden) и пишет список документов рядом
+// с файлами. Сами .md не изменяются. Баннеры из подпапки banners/ автоматически
+// становятся header документов (about.md ← banners/about.png|jpg|jpeg|webp).
 // buildIndex(dir) — переиспользуемая функция (мидлварь dev-режима в vite.config.js).
+
+const IMG_EXT = new Set(["png", "jpg", "jpeg", "webp"]);
+const IMG_EXT_ORDER = ["png", "jpg", "jpeg", "webp"];
 
 /**
  * Собирает список документов из .md файлов папки.
@@ -47,9 +51,59 @@ export async function buildIndex(dir) {
 			title: data.title,
 			order: Number.isFinite(data.order) ? data.order : 1000,
 			hidden: Boolean(data.hidden),
-			header: typeof data.header === "string" ? data.header : null,
+			header: null,
 			url: fileName,
 		});
+	}
+
+	// Баннеры: banners/<id>.png|jpg|jpeg|webp → header документа.
+	// Нет папки banners — шаг пропускается.
+	const bannersDir = path.join(dir, "banners");
+	let bannerFiles = null;
+	try {
+		bannerFiles = (await fs.readdir(bannersDir)).filter((f) =>
+			IMG_EXT.has(path.extname(f).toLowerCase().slice(1)),
+		);
+	} catch (e) {
+		if (e.code !== "ENOENT") {
+			problems.push(`banners/: не удалось прочитать (${e.message})`);
+		}
+	}
+
+	if (bannerFiles) {
+		const prio = (f) =>
+			IMG_EXT_ORDER.indexOf(path.extname(f).toLowerCase().slice(1));
+		bannerFiles.sort((a, b) => prio(a) - prio(b));
+		const byBase = new Map();
+		for (const f of bannerFiles) {
+			const base = f.replace(/\.[^.]+$/, "");
+			const cur = byBase.get(base);
+			if (cur) {
+				problems.push(
+					`banners/: несколько картинок для «${base}» (${cur}, ${f}) — взят ${cur}`,
+				);
+			} else {
+				byBase.set(base, f);
+			}
+		}
+		const mdBases = new Set(files.map((f) => f.replace(/\.md$/, "")));
+		for (const d of index) {
+			const b = byBase.get(d.id);
+			if (b) {
+				d.header = `banners/${b}`;
+			} else {
+				problems.push(
+					`${d.id}.md: в banners/ нет баннера (${d.id}.png|jpg|webp)`,
+				);
+			}
+		}
+		for (const [base, f] of byBase) {
+			if (!mdBases.has(base)) {
+				problems.push(
+					`banners/${f}: нет ${base}.md — картинка не используется`,
+				);
+			}
+		}
 	}
 
 	if (!index.length) {

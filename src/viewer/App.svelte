@@ -62,7 +62,7 @@
       if (cfg) {
         const hidden = new Set(cfg.hidden ?? []);
         const order = new Map((cfg.order ?? []).map((id, i) => [id, i]));
-        list = list.filter((d) => !hidden.has(d.id));
+        list = list.filter((d) => !d.hidden && !hidden.has(d.id));
         list.sort((a, b) => (order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity));
       }
       docs = list;

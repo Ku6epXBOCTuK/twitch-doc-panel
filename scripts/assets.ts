@@ -1,85 +1,27 @@
 // Рендер PNG-ассетов для «Version Details» из SVG-исходников (assets/src/):
 //   npm run assets
 // Использует headless Chrome/Edge (--screenshot) — дополнительных зависимостей нет.
-import { spawnSync } from "node:child_process";
-import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
-import process from "node:process";
+import { fail, repoRoot } from "./lib/repo.ts";
+import { renderSvgToPng } from "./lib/svg.ts";
 
-const root = process.cwd();
-const SRC = path.join(root, "assets", "src");
-const OUT = path.join(root, "assets");
+const SRC = path.join(repoRoot, "assets", "src");
+const OUT = path.join(repoRoot, "assets");
 
-function findBrowser(): string {
-	const candidates = [
-		process.env.CHROME_PATH,
-		"C:/Program Files/Google/Chrome/Application/chrome.exe",
-		"C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-		path.join(
-			os.homedir(),
-			"AppData/Local/Google/Chrome/Application/chrome.exe",
-		),
-		"C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-		"C:/Program Files/Microsoft/Edge/Application/msedge.exe",
-	].filter((c): c is string => Boolean(c));
-	for (const c of candidates) {
-		if (fs.existsSync(c)) return c;
+const targets = [
+	{ svg: "logo.svg", w: 100, h: 100, out: "logo-100x100.png" },
+	{ svg: "logo.svg", w: 64, h: 64, out: "icon-64x64.png" },
+	{ svg: "logo.svg", w: 24, h: 24, out: "icon-24x24.png" },
+	{ svg: "discovery.svg", w: 300, h: 200, out: "discovery-300x200.png" },
+	{ svg: "banner-demo.svg", w: 636, h: 340, out: "banner-demo.png" },
+];
+
+try {
+	for (const t of targets) {
+		renderSvgToPng(path.join(SRC, t.svg), t.w, t.h, path.join(OUT, t.out));
+		console.log(`${t.out}  <-  ${t.svg} (${t.w}x${t.h})`);
 	}
-	throw new Error(
-		"Не найден Chrome/Edge — установи или укажи путь в переменной CHROME_PATH",
-	);
+} catch (e) {
+	fail(e instanceof Error ? e.message : String(e));
 }
-
-const browser = findBrowser();
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "panel-assets-"));
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), "panel-assets-profile-"));
-
-function svgToPng(
-	svgName: string,
-	w: number,
-	h: number,
-	outName: string,
-): void {
-	const svg = fs.readFileSync(path.join(SRC, svgName), "utf8");
-	const sized = svg.replace("<svg", `<svg width="${w}" height="${h}"`);
-	const htmlPath = path.join(tmp, `${outName}.html`);
-	fs.writeFileSync(
-		htmlPath,
-		`<!doctype html><meta charset="utf-8"><style>*{margin:0}</style>${sized}`,
-	);
-	const out = path.join(OUT, outName);
-	const r = spawnSync(
-		browser,
-		[
-			"--headless=new",
-			`--user-data-dir=${profile}`,
-			`--screenshot=${out}`,
-			`--window-size=${w},${h}`,
-			"--hide-scrollbars",
-			"--default-background-color=00000000",
-			"--virtual-time-budget=3000",
-			`file:///${htmlPath.replace(/\\/g, "/")}`,
-		],
-		{ stdio: "pipe" },
-	);
-	if (r.status !== 0 || !fs.existsSync(out)) {
-		console.error(
-			r.stderr?.toString() ||
-				r.stdout?.toString() ||
-				`не удалось отрендерить ${outName}`,
-		);
-		process.exit(1);
-	}
-	console.log(`${outName}  ←  ${svgName} (${w}×${h})`);
-}
-
-svgToPng("logo.svg", 100, 100, "logo-100x100.png");
-svgToPng("logo.svg", 64, 64, "icon-64x64.png");
-svgToPng("logo.svg", 24, 24, "icon-24x24.png");
-svgToPng("discovery.svg", 300, 200, "discovery-300x200.png");
-svgToPng("banner-demo.svg", 636, 340, "banner-demo.png");
-
-fs.rmSync(tmp, { recursive: true, force: true });
-fs.rmSync(profile, { recursive: true, force: true });
-console.log("Готово: PNG лежат в assets/");
+console.log("Done: PNG in assets/");

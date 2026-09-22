@@ -40,27 +40,33 @@
    записей нет (архив пересоздаётся целиком).
 4. **`install-cli` — только Windows:** оставить `.cmd`-шим + проверка
    существования `builder/build.ts`.
+5. **Весь вывод в консоль — на английском, по-ASCII** (ошибки, usage, валидация,
+   логи прогресса): при неверной codepage кириллица и символы вроде «←», «×»,
+   «—» превращаются в кракозябры. Правится не отдельным шагом, а сразу в каждом
+   затронутом файле: шаг 1 — уже на английском; шаги 2 и 3 пишут весь вывод на
+   английском с рождения.
 
 ## Чеклист
 
-- [ ] Шаг 1. Общие либы + SVG-рендер: `scripts/lib/repo.ts` (`repoRoot`,
+- [x] Шаг 1. Общие либы + SVG-рендер: `scripts/lib/repo.ts` (`repoRoot`,
       `fail()`), `scripts/lib/browser.ts` (`findBrowser()`, `screenshotChrome()`
       sync/async, temp-папки с try/finally),
       `scripts/templates/svg-frame.html` + `scripts/lib/svg.ts`
       (`renderSvgToPng()`); `scripts/assets.ts` и `scripts/render-svg.ts`
       переписать тонкими потребителями этих либ (убрать все дубли, починить
-      утечку temp при ошибке)
+      утечку temp при ошибке); весь вывод в консоль — на английском (ASCII)
 - [ ] Шаг 2. `scripts/screenshot.ts`: вынести страницу в
       `scripts/templates/screenshot.html`, сервер — в
       `scripts/lib/static-server.ts` (MIME: jpg, jpeg, webp, svg, ico), staging
       перевести на `buildIndex()` из `builder/build.ts` + копирование
       .md/баннеров, снимок через `lib/browser.ts` (async), cleanup в
-      try/finally; на выходе — оркестратор вместо god-script
+      try/finally; на выходе — оркестратор вместо god-script; весь вывод — на
+      английском
 - [ ] Шаг 3. `scripts/pack.ts` переписать на PowerShell (`CreateFromDirectory`
       через `powershell.exe -NoProfile`), с проверкой
       `dist/viewer`/`dist/config` и путями от `repoRoot`; в
       `scripts/install-cli.ts` добавить проверку существования
-      `builder/build.ts` до записи шима
+      `builder/build.ts` до записи шима; весь вывод — на английском
 - [ ] Проверка (одним заходом): `npm run check`, `npm run assets`,
       `npm run screenshots`, `npm run build`, `npm run install-cli` — всё
       зелёное, temp-папки почищены, зип собран

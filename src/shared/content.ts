@@ -5,8 +5,8 @@ export const DEFAULT_INDEX_URL = "";
 
 // URL локального index.json в dev-режиме. Мидлварь dev-content в
 // vite.config.ts пересобирает этот индекс на каждый запрос, поэтому правки
-// content/docs/*.md видны по перезагрузке страницы.
-const DEV_INDEX_URL = "/content/docs/index.json";
+// fixtures/*.md видны по перезагрузке страницы.
+const DEV_INDEX_URL = "/fixtures/index.json";
 
 // Проверка ссылки на контент: абсолютные URL — только http/https,
 // относительные пути разрешены (резолвятся от origin виджета).

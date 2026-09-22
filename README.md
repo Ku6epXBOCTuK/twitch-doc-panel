@@ -36,7 +36,8 @@ src/shared/types.ts            общие типы: front-matter (DocFrontMatter
 src/shared/md.ts               runtime-конвертация Markdown → мини-AST (типизированный)
 src/shared/DocRenderer.svelte  рекурсивный рендерер (без {@html})
 builder/build.ts               утилита: генерирует index.json по папке с .md
-content/docs/*.md              пример репозитория контента
+fixtures/*.md                тестовые фикстуры: dev-режим и скриншоты
+                             (не рабочий контент, не источник правды)
 app/                           итог для деплоя: viewer.html + config.html
                                (в .gitignore — собирается `npm run build`, на сервер копируется вручную)
 ```
@@ -46,7 +47,7 @@ app/                           итог для деплоя: viewer.html + confi
 | Команда                  | Что делает                                                                |
 | ------------------------ | ------------------------------------------------------------------------- |
 | `npm run check`          | svelte-check: типизация всего проекта (Svelte + TS)                       |
-| `npm run build:fixtures` | утилита: `content/docs/*.md` → `content/docs/index.json`                  |
+| `npm run build:fixtures` | утилита: `fixtures/*.md` → `fixtures/index.json`                          |
 | `npm run install-cli`    | создать/обновить глобальную команду `build-docs` (`~/bin/build-docs.cmd`) |
 | `npm run build`          | фронтенд → `app/` (viewer.html + config.html)                             |
 | `npm run dev`            | dev-сервер :8080, корень `/` — страница аудита верстки                    |
@@ -98,8 +99,8 @@ build-docs docs       # docs/*.md → docs/index.json
 1. `npm run dev` → `https://localhost:8080/` — корень открывает страницу аудита:
    viewer в реальном размере 318×500, рядом config-вью, переключатель
    тёмной/светлой темы.
-2. Индекс `content/docs` пересобирается на лету при каждом запросе: правишь
-   `.md` → перезагрузка страницы. `npm run build:fixtures` в dev не нужен.
+2. Индекс `fixtures` пересобирается на лету при каждом запросе: правишь `.md` →
+   перезагрузка страницы. `npm run build:fixtures` в dev не нужен.
 3. Twitch-конфига в dev нет — работает заглушка: «Сохранить» в config-вью пишет
    в localStorage (`dev:broadcaster-config`), viewer тут же перечитывает список
    с порядком и скрытием.
@@ -147,9 +148,9 @@ connect-src allowlist расширения. Pop-out отключить нель�
 
 - Исходники дизайна — SVG в `assets/src/`: правишь → перезапускаешь
   `npm run assets`.
-- Скриншот-скрипт сам собирает демо-контент из `content/docs` во временную
-  папку, снимает панель в контексте и закрывает сервер. Другой кадр — правь
-  разметку обёртки в `scripts/screenshot.ts`.
+- Скриншот-скрипт сам собирает демо-контент из `fixtures/` во временную папку,
+  снимает панель в контексте и закрывает сервер. Другой кадр — правь разметку
+  обёртки в `scripts/screenshot.ts`.
 - Категория, summary/description, EULA/Privacy URL, author email — текстовые
   поля в консоли; после ввода author email нужно перейти по
   письму-подтверждению.

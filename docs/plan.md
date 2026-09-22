@@ -14,9 +14,9 @@
   (`builder/action.yml`) + CLI; позднее при желании можно опубликовать в npm.
 - **Контент — отдельный репозиторий** (публикуется в сети как угодно), чтобы им
   могли пользоваться другие люди. В этом репо живёт только тестовый контент —
-  пользовательская документация по проекту в папке `content/` (см. ниже).
-  Внутренние планы/ресерч (`docs/plan.md`, `docs/RESEARCH.md`) — не контент, они
-  сюда не попадают.
+  фикстуры в папке `fixtures/` для dev-режима и скриншотов. Внутренние
+  планы/ресерч (`docs/plan.md`, `docs/RESEARCH.md`) — не контент, они сюда не
+  попадают.
 
 ## Хостинг контента и CSP (ключевое ограничение платформы)
 
@@ -74,7 +74,7 @@ jsDelivr при пине-доменах из CSP) или по относител
   `http:` только для `localhost`/`127.0.0.1`; `safeLink`: любые http(s).
 - `src/config/App.svelte` _(сделано)_ — подсказка про URL вместо «белого списка
   хостов».
-- `scripts/screenshot.js` — дефолтная папка контента `content`; копирование
+- `scripts/screenshot.js` — дефолтная папка контента `fixtures`; копирование
   используемых картинок в стейджинг.
 
 ## Сущность 2 — Билдер/валидатор (`builder/build.js`, переписать)
@@ -111,33 +111,16 @@ jsDelivr при пине-доменах из CSP) или по относител
   `uses: <owner>/twitch-multi-panel/builder@<ref>` → авто-коммит изменённых .md
   и index.json.
 
-## Тестовый контент = пользовательская документация
-
-- Папка `content/` в корне репо — корень будущего контент-репо (и раздачи):
-  `*.md` с front-matter (`title`, `order`), `banners/`, `images/`,
-  сгенерированный `builder`-ом `index.json`. Схема идентична и для Pages, и для
-  jsDelivr (файлы в корне репо), и для same-origin (app/ рядом).
-- В `content/` лежит только пользовательская документация по проекту (что за
-  панель, как установить, как наполнить контент, как пользоваться билдером) —
-  это и есть тестовый контент для локального показа виджета и скриншотов.
-  Внутренние заметки разработки (`docs/plan.md`, `docs/RESEARCH.md`) — вне
-  контента; папка `docs/` не публикуется.
-- При создании отдельного репо с доками `content/` деплоится в него как есть.
-- Старый пример контента (`content/docs`) заменяется пользовательской
-  документацией на месте.
-
 ## Прочее
 
-- `package.json`: скрипт `build:index` → `node builder/build.js content`.
-- `.gitignore`: `content/docs/index.json` → `content/index.json`.
 - `LICENSE` — MIT (имя владельца: Ku6epXBOCTuK).
 - `README.md` — описание новой структуры и workflow; `backlog.md` — отметки.
-- Итоговая проверка: `npm run build:index` (content → index.json) и
-  `npm run build` (viewer + config), локальный показ виджета на content.
+- Итоговая проверка: `npm run build:fixtures` (fixtures → index.json) и
+  `npm run build` (viewer + config), локальный показ виджета на fixtures.
 
 ## Последовательность шагов
 
-1. content/: пользовательская документация (front-matter), banners/, images/
+1. fixtures/: тестовые фикстуры (front-matter), banners/
 2. LICENSE (MIT), .gitignore, package.json
 3. Билдер: builder/build.js + builder/action.yml + workflow-example
 4. Виджет: content.js, config-вью, scripts/screenshot.js

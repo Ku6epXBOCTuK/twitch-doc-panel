@@ -9,7 +9,7 @@
 		"build:viewer": "vite build -c vite.build.viewer.ts",
 		"build:config": "vite build -c vite.build.config.ts",
 		"build": "npm run build:viewer && npm run build:config && node scripts/pack.ts",
-		"build:fixtures": "node builder/build.ts content/docs",
+		"build:fixtures": "node builder/build.ts fixtures",
 		"install-cli": "node scripts/install-cli.ts",
 		"assets": "node scripts/assets.ts",
 		"screenshots": "node scripts/screenshot.ts",

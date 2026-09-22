@@ -16,13 +16,13 @@ const https =
 		? { key: fs.readFileSync(certKey), cert: fs.readFileSync(certPem) }
 		: undefined;
 
-// Dev-only: index.json для content/docs генерируется на лету при каждом запросе —
-// правки .md видны по перезагрузке страницы, `npm run build:index` в dev не нужен.
+// Dev-only: index.json для fixtures/ генерируется на лету при каждом запросе —
+// правки .md видны по перезагрузке страницы, `npm run build:fixtures` в dev не нужен.
 // Мидлварь зарегистрирована в теле configureServer (до внутренних мидлварей Vite),
 // поэтому перехватывает запрос раньше статики, которая отдала бы устаревший файл.
 function devContent(): Plugin {
-	const indexUrl = "/content/docs/index.json";
-	const contentDir = path.join(process.cwd(), "content", "docs");
+	const indexUrl = "/fixtures/index.json";
+	const contentDir = path.join(process.cwd(), "fixtures");
 	return {
 		name: "dev-content",
 		apply: "serve",

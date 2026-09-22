@@ -2,5 +2,5 @@ node_modules/
 dist/
 app/
 certs/
-content/docs/index.json
+fixtures/index.json
 *.log

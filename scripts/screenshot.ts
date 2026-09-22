@@ -4,7 +4,7 @@
 // папку (viewer.html + демо-контент + демо-заголовок), поднимает ОДНОРАЗОВЫЙ
 // локальный сервер на случайном порту (только 127.0.0.1, закрывается сам после
 // снимка) и снимает панель headless Chrome/Edge.
-// Обновить демо-контент: правь content/docs/*.md и просто запусти скрипт снова.
+// Обновить демо-контент: правь fixtures/*.md и просто запусти скрипт снова.
 import matter from "gray-matter";
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -59,12 +59,9 @@ const PROFILE = fs.mkdtempSync(path.join(os.tmpdir(), "panel-shot-profile-"));
 const OUT_DIR = path.join(root, "assets", "screenshots");
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-// 2. Контент: .md из папки (аргумент, по умолчанию content/docs) + index.json.
+// 2. Контент: .md из папки (аргумент, по умолчанию fixtures) + index.json.
 //    Баннер banners/<id>.png|jpg|jpeg|webp копируется в стейджинг и становится banner.
-const docsDir = path.resolve(
-	root,
-	process.argv[2] ?? path.join("content", "docs"),
-);
+const docsDir = path.resolve(root, process.argv[2] ?? "fixtures");
 const index: DocEntry[] = [];
 for (const f of (await fsp.readdir(docsDir)).filter((f) => f.endsWith(".md"))) {
 	const { data } = matter(await fsp.readFile(path.join(docsDir, f), "utf8"));

@@ -11,7 +11,7 @@ export interface DocEntry {
 	title: string;
 	order: number;
 	hidden: boolean;
-	header: string | null;
+	banner: string | null;
 	url: string;
 }
 

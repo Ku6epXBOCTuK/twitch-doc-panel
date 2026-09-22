@@ -1,11 +1,11 @@
 // Рендер PNG-ассетов для «Version Details» из SVG-исходников (assets/src/):
 //   npm run assets
 // Использует headless Chrome/Edge (--screenshot) — дополнительных зависимостей нет.
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import os from "node:os";
-import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
 const SRC = path.join(root, "assets", "src");
@@ -78,7 +78,7 @@ svgToPng("logo.svg", 100, 100, "logo-100x100.png");
 svgToPng("logo.svg", 64, 64, "icon-64x64.png");
 svgToPng("logo.svg", 24, 24, "icon-24x24.png");
 svgToPng("discovery.svg", 300, 200, "discovery-300x200.png");
-svgToPng("header-demo.svg", 636, 340, "header-demo.png");
+svgToPng("banner-demo.svg", 636, 340, "banner-demo.png");
 
 fs.rmSync(tmp, { recursive: true, force: true });
 fs.rmSync(profile, { recursive: true, force: true });

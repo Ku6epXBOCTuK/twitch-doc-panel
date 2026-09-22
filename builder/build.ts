@@ -15,7 +15,7 @@ import {
 // Без аргументов — текущая папка. Сканирует .md, читает front-matter
 // (title обязателен; order, hidden) и пишет список документов рядом
 // с файлами. Сами .md не изменяются. Баннеры из подпапки banners/ автоматически
-// становятся header документов (about.md ← banners/about.png|jpg|jpeg|webp).
+// становятся banner документов (about.md ← banners/about.png|jpg|jpeg|webp).
 // buildIndex(dir) — переиспользуемая функция (мидлварь dev-режима в vite.config.ts).
 
 const IMG_EXT = new Set(["png", "jpg", "jpeg", "webp"]);
@@ -58,12 +58,12 @@ export async function buildIndex(
 				? (fm.order as number)
 				: DEFAULT_DOC_ORDER,
 			hidden: Boolean(fm.hidden),
-			header: null,
+			banner: null,
 			url: fileName,
 		});
 	}
 
-	// Баннеры: banners/<id>.png|jpg|jpeg|webp → header документа.
+	// Баннеры: banners/<id>.png|jpg|jpeg|webp → banner документа.
 	// Нет папки banners — предупреждение, документы остаются без баннера.
 	const bannersDir = path.join(dir, "banners");
 	let bannerFiles: string[] | null = null;
@@ -99,7 +99,7 @@ export async function buildIndex(
 		for (const d of index) {
 			const b = byBase.get(d.id);
 			if (b) {
-				d.header = `banners/${b}`;
+				d.banner = `banners/${b}`;
 			} else {
 				problems.push(
 					`${d.id}.md: в banners/ нет баннера (${d.id}.png|jpg|webp)`,

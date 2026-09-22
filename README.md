@@ -12,12 +12,12 @@ Twitch Panel Extension: одна панель (318×496), внутри — не�
   docs/*.md  +  index.json                 app/viewer.html + app/config.html
       ↑ утилита составляет список              │
       │                                        │ 1. из конфиг-сегмента берёт ссылку
-node builder/build.js <папка с md>             │    на index.json (любой http(s) хост)
+node builder/build.ts <папка с md>             │    на index.json (любой http(s) хост)
                                                │ 2. грузит .md напрямую и рендерит
 ```
 
-- `index.json` — список документов: `[{id, title, order, hidden, header, url}]`,
-  `url` — имя .md файла рядом с индексом.
+- `index.json` — список документов: `[{id, title, order, hidden, banner, url}]`,
+  `url` — имя .md файла рядом с индексом, `banner` — путь к картинке-баннеру.
 - Рендер: marked → мини-AST → рекурсивный компонент. Без `{@html}` и
   санитайзеров: строки эскейпит Svelte, картинки только https (http — только
   localhost для dev), ссылки только http(s) в новой вкладке, непонятные узлы
@@ -43,24 +43,24 @@ app/                           итог для деплоя: viewer.html + confi
 
 ## Команды
 
-| Команда               | Что делает                                                                |
-| --------------------- | ------------------------------------------------------------------------- |
-| `npm run check`       | svelte-check: типизация всего проекта (Svelte + TS)                       |
-| `npm run build:index` | утилита: `content/docs/*.md` → `content/docs/index.json`                  |
-| `npm run install-cli` | создать/обновить глобальную команду `build-docs` (`~/bin/build-docs.cmd`) |
-| `npm run build`       | фронтенд → `app/` (viewer.html + config.html)                             |
-| `npm run dev`         | dev-сервер :8080, корень `/` — страница аудита верстки                    |
+| Команда                  | Что делает                                                                |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `npm run check`          | svelte-check: типизация всего проекта (Svelte + TS)                       |
+| `npm run build:fixtures` | утилита: `content/docs/*.md` → `content/docs/index.json`                  |
+| `npm run install-cli`    | создать/обновить глобальную команду `build-docs` (`~/bin/build-docs.cmd`) |
+| `npm run build`          | фронтенд → `app/` (viewer.html + config.html)                             |
+| `npm run dev`            | dev-сервер :8080, корень `/` — страница аудита верстки                    |
 
 ## Репозиторий контента
 
 - Папка с `.md` файлами. Front-matter: `title` (обязателен), `order` (число),
   `hidden` (bool).
 - Баннеры: папка `banners/` рядом с `.md` — картинка с именем документа
-  (`about.md` → `banners/about.png|jpg|jpeg|webp`) становится заголовочной
-  (`header`): `title` пишется в её `alt`, h1 у документа не выводится. Документ
-  без баннера показывается с обычным заголовком h1. Варнинги: нет папки
-  `banners/`, у страницы нет баннера, есть картинка без одноимённой страницы, у
-  документа несколько картинок-баннеров.
+  (`about.md` → `banners/about.png|jpg|jpeg|webp`) попадает в поле `banner`
+  записи `index.json` (`banners/about.png`): `title` пишется в её `alt`, h1 у
+  документа не выводится. Документ без баннера показывается с обычным заголовком
+  h1. Варнинги: нет папки `banners/`, у страницы нет баннера, есть картинка без
+  одноимённой страницы, у документа несколько картинок-баннеров.
 - Сгенерировать индекс: `build-docs <папка с .md>` (глобальная команда из этого
   репо, см. ниже; без аргумента — текущая папка) или
   `node builder/build.ts <папка с .md>` → `index.json` рядом с файлами. Утилита
@@ -99,7 +99,7 @@ build-docs docs       # docs/*.md → docs/index.json
    viewer в реальном размере 318×496, рядом config-вью, переключатель
    тёмной/светлой темы.
 2. Индекс `content/docs` пересобирается на лету при каждом запросе: правишь
-   `.md` → перезагрузка страницы. `npm run build:index` в dev не нужен.
+   `.md` → перезагрузка страницы. `npm run build:fixtures` в dev не нужен.
 3. Twitch-конфига в dev нет — работает заглушка: «Сохранить» в config-вью пишет
    в localStorage (`dev:broadcaster-config`), viewer тут же перечитывает список
    с порядком и скрытием.
@@ -149,7 +149,7 @@ connect-src allowlist расширения. Pop-out отключить нель�
   `npm run assets`.
 - Скриншот-скрипт сам собирает демо-контент из `content/docs` во временную
   папку, снимает панель в контексте и закрывает сервер. Другой кадр — правь
-  разметку обёртки в `scripts/screenshot.js`.
+  разметку обёртки в `scripts/screenshot.ts`.
 - Категория, summary/description, EULA/Privacy URL, author email — текстовые
   поля в консоли; после ввода author email нужно перейти по
   письму-подтверждению.

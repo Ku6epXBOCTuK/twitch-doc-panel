@@ -26,5 +26,5 @@
     <path d="M258 100 l14 12 -14 12" fill="none" stroke="#6441A5" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
   <rect x="24" y="64" width="46" height="4" rx="2" fill="url(#acc)"/>
-  <text x="24" y="94" fill="#FFFFFF" font-family="Segoe UI, system-ui, sans-serif" font-size="19" font-weight="700">Документы канала</text>
+  <text x="24" y="94" fill="#FFFFFF" font-family="Segoe UI, system-ui, sans-serif" font-size="19" font-weight="700">Channel docs</text>
 </svg>

@@ -42,6 +42,10 @@
 	const qp = new URLSearchParams(globalThis.location?.search ?? "").get(
 		"index",
 	);
+	// ?doc=<id> — открыть документ по id (скриншоты/аудит): демонстрация пейджера.
+	const qpDoc = new URLSearchParams(globalThis.location?.search ?? "").get(
+		"doc",
+	);
 	if (qp) {
 		loadIndex(qp);
 	} else {
@@ -91,7 +95,8 @@
 				return;
 			}
 			status = "ready";
-			await loadDoc(0);
+			const idx = qpDoc ? list.findIndex((d) => d.id === qpDoc) : 0;
+			await loadDoc(idx >= 0 ? idx : 0);
 		} catch (e) {
 			console.error(e);
 			loadError = String((e as Error).message ?? e);
@@ -120,7 +125,7 @@
 		if (tag === "ul" || tag === "ol") {
 			const items = rest[0];
 			return Array.isArray(items)
-				? [tag, ...items.map((li) => absolutize(li, base))]
+				? [tag, items.map((li) => absolutize(li, base))]
 				: n;
 		}
 		return [tag, ...rest.map((x) => absolutize(x, base))];

@@ -1,16 +1,16 @@
 ---
-title: Правила чата
+title: Chat rules
 order: 2
 ---
 
-## Общие правила
+## General rules
 
-1. Уважай друг друга — _без_ оскорблений и политики.
-2. Без спама и капса.
-3. Вопросы задавай в чат — модераторы помогут.
+1. Respect each other — _no_ insults or politics.
+2. No spam or ALL CAPS.
+3. Ask questions in chat — moderators will help.
 
-## Наказания
+## Penalties
 
-- Первый раз — предупреждение
-- Второй раз — **таймаут 10 минут**
-- Третий раз — бан
+- First time — a warning
+- Second time — **10-minute timeout**
+- Third time — ban

@@ -1,18 +1,27 @@
 ---
-title: О канале
+title: About
 order: 1
 ---
 
-Привет! Я стримлю **игры и музыку** по вечерам.
+**DocPanel** is a Twitch extension that turns one 318×500 channel panel into a
+small notebook with several documents viewers flip through.
 
-## Расписание
+## What you get
 
-- Вт, Чт, Сб — с 19:00 МСК
-- Иногда _утренние_ стримы в выходные
+- Several documents in **one panel** with a prev/next pager
+- Content is plain **Markdown** from your own repo — no backend, no coding
+- Per-document banners, order and hide via config — no rebuild needed
+- Fits dark and light Twitch themes
 
-> Расписание может меняться — следи за постами в Discord.
+## How it works
 
-## Где меня найти
+1. Write documents as `.md` files (GitHub, Gitea, any HTTPS host).
+2. Run `build-docs` to generate `index.json`.
+3. Paste the `index.json` URL in the panel config and save.
 
-1. [Telegram](https://t.me/example) — анонсы
-2. [Discord](https://discord.gg/example) — общение
+> The panel loads your Markdown directly — no tracking, no ads.
+
+## Supported Markdown
+
+- Headings, **bold**, _italic_, ~~strike~~, `inline code`
+- Lists and checkboxes, links, images, quotes

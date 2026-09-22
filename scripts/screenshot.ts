@@ -1,11 +1,12 @@
 // Скриншоты панели для «Version Details» (1024×768, 4:3 — как требует Twitch):
 //   npm run screenshots
-// Как работает: собирает временную папку (viewer.html + демо-контент + демо-заголовок),
-// поднимает ОДНОРАЗОВЫЙ локальный сервер на случайном порту (только 127.0.0.1,
-// закрывается сам после снимка) и снимает панель headless Chrome/Edge.
+// Как работает: сперва собирает вьюер (npm run build:viewer), собирает временную
+// папку (viewer.html + демо-контент + демо-заголовок), поднимает ОДНОРАЗОВЫЙ
+// локальный сервер на случайном порту (только 127.0.0.1, закрывается сам после
+// снимка) и снимает панель headless Chrome/Edge.
 // Обновить демо-контент: правь content/docs/*.md и просто запусти скрипт снова.
 import matter from "gray-matter";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import http from "node:http";
@@ -35,6 +36,21 @@ function findBrowser(): string {
 	throw new Error(
 		"Не найден Chrome/Edge — установи или укажи путь в переменной CHROME_PATH",
 	);
+}
+
+// 1. Сборка вьюера: скриншоты всегда со свежего бандла (dist/viewer),
+//    иначе в кадр уедет старый рендер из app/, собранный при прошлом pack.
+//    vite вызывается через node напрямую — без npm (на Windows .cmd-обёртка
+//    требует shell, а shell:true даёт DeprecationWarning).
+const viteBin = path.join(root, "node_modules", "vite", "bin", "vite.js");
+const build = spawnSync(
+	process.execPath,
+	[viteBin, "build", "-c", "vite.build.viewer.ts"],
+	{ stdio: "inherit", cwd: root },
+);
+if (build.status !== 0) {
+	console.error("build:viewer не собрался — скриншоты отменены");
+	process.exit(build.status ?? 1);
 }
 
 const browser = findBrowser();
@@ -83,10 +99,15 @@ fs.writeFileSync(
 );
 console.log("staging:", fs.readdirSync(STAGING).join(", "));
 
-// 3. viewer.html (собранный)
+// 3. viewer.html (собранный build:viewer) + его ассеты из dist/viewer
 fs.copyFileSync(
-	path.join(root, "app", "viewer.html"),
+	path.join(root, "dist", "viewer", "viewer.html"),
 	path.join(STAGING, "viewer.html"),
+);
+fs.cpSync(
+	path.join(root, "dist", "viewer", "assets"),
+	path.join(STAGING, "assets"),
+	{ recursive: true },
 );
 
 // 4. Страница-обёртка: панель в контексте, как она выглядит на канале
@@ -114,7 +135,7 @@ fs.writeFileSync(
   h1 span { color: #bf94ff; }
   p { font-size: 18px; color: #adadb8; margin: 0; line-height: 1.55; }
   .card {
-    width: 318px; height: 500px; border-radius: 10px; overflow: hidden;
+    width: 318px; height: 500px;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
     flex-shrink: 0;
   }
@@ -122,13 +143,13 @@ fs.writeFileSync(
 </style>
 <div>
   <div class="badge">Twitch Extension</div>
-  <h1>Enhanced<br><span>Twitch Panel</span></h1>
-  <p>Несколько документов<br>в одной панели канала</p>
+  <h1>DocPanel</h1>
+  <p>Multiple documents<br>in one channel panel</p>
 </div>
 <div class="card"><iframe src="/viewer.html?index=/index.json"></iframe></div>
 <script>
   if (new URLSearchParams(location.search).has('scroll')) {
-    document.querySelector('iframe').src = '/viewer.html?index=/index.json&demoScroll=1';
+    document.querySelector('iframe').src = '/viewer.html?index=/index.json&doc=rules';
   }
 </script>
 `,
@@ -139,6 +160,8 @@ const MIME: Record<string, string> = {
 	".html": "text/html",
 	".json": "application/json",
 	".md": "text/markdown",
+	".js": "text/javascript",
+	".css": "text/css",
 	".png": "image/png",
 };
 const server = http.createServer((req, res) => {
@@ -203,7 +226,7 @@ function shoot(
 }
 
 await shoot(1024, 768, "panel-1024x768.png", "/");
-await shoot(1024, 768, "panel-scrolled-1024x768.png", "/?scroll=1");
+await shoot(1024, 768, "panel-rules-1024x768.png", "/?scroll=1");
 
 server.close();
 try {

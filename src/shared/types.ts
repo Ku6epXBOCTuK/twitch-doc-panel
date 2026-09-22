@@ -33,7 +33,11 @@ export interface BroadcasterConfig {
 	order: string[];
 }
 
-export type Theme = "dark" | "light";
+export const THEME_VARIANT = {
+	DARK: "dark",
+	LIGHT: "light",
+};
+export type Theme = (typeof THEME_VARIANT)[keyof typeof THEME_VARIANT];
 
 export interface ResolveIndexResult {
 	url: string | null;

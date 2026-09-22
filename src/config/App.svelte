@@ -1,69 +1,7 @@
 <script lang="ts">
-	import {
-		onBroadcasterConfig,
-		saveBroadcasterConfig,
-	} from "../shared/twitch.ts";
-	import { isContentUrl, initialIndexUrl } from "../shared/content.ts";
-	import {
-		buildConfigRows,
-		fetchDocsIndex,
-		moveRow,
-		toBroadcasterConfig,
-	} from "../shared/docs.ts";
-	import type { BroadcasterConfig, ConfigRow } from "../shared/types.ts";
+	import { ConfigState, STATUS } from "./config-state.svelte.ts";
 
-	type Status = "idle" | "loading" | "ready" | "error";
-
-	// The config arrives asynchronously — fill the field when it does.
-	let savedCfg = $state<Partial<BroadcasterConfig>>({});
-
-	let indexUrl = $state("");
-	let list = $state<ConfigRow[]>([]);
-	let status = $state<Status>("idle"); // idle | loading | ready | error
-	let error = $state("");
-	let savedOk = $state(false);
-
-	onBroadcasterConfig((c) => {
-		savedCfg = c ?? {};
-		if (!indexUrl) {
-			const url = initialIndexUrl(c);
-			if (url) {
-				indexUrl = url;
-				load();
-			}
-		}
-	});
-
-	async function load(): Promise<void> {
-		savedOk = false;
-		error = "";
-		const url = indexUrl.trim();
-		if (!url) {
-			error = "Set the index.json URL";
-			return;
-		}
-		if (!isContentUrl(url)) {
-			error = "The URL must be an http(s) URL or a relative path";
-			return;
-		}
-		status = "loading";
-		const r = await fetchDocsIndex(url);
-		if (!r.ok) {
-			error = r.message;
-			status = "error";
-			return;
-		}
-		list = buildConfigRows(r.entries, savedCfg);
-		status = "ready";
-	}
-
-	function move(i: number, dir: number): void {
-		list = moveRow(list, i, dir);
-	}
-
-	function save(): void {
-		savedOk = saveBroadcasterConfig(toBroadcasterConfig(indexUrl.trim(), list));
-	}
+	const state = new ConfigState();
 </script>
 
 <div class="config">
@@ -73,33 +11,35 @@
 		<span class="label">index.json URL</span>
 		<input
 			type="text"
-			bind:value={indexUrl}
+			bind:value={state.indexUrl}
 			placeholder="https://…/index.json"
-			onkeydown={(e: KeyboardEvent) => e.key === "Enter" && load()}
+			onkeydown={(e: KeyboardEvent) => e.key === "Enter" && state.load()}
 		/>
 	</label>
 	<p class="muted hint">
 		An absolute http(s) URL (e.g. GitHub Pages or jsDelivr) or a path next to
 		the widget.
 	</p>
-	<button onclick={load}>Load list</button>
+	<button onclick={() => state.load()}>Load list</button>
 
-	{#if status === "loading"}
+	{#if state.status === STATUS.LOADING}
 		<p class="muted">Loading…</p>
-	{:else if status === "error"}
-		<p class="err">{error}</p>
-	{:else if status === "ready"}
-		{#each list as doc, i (doc.id)}
+	{:else if state.status === STATUS.ERROR}
+		<p class="err">{state.error}</p>
+	{:else if state.status === STATUS.READY}
+		{#each state.list as doc, i (doc.id)}
 			<div class="row">
 				<span class="title">{doc.title}</span>
 				<span class="controls">
-					<button title="Move up" onclick={() => move(i, -1)} disabled={i === 0}
-						>↑</button
+					<button
+						title="Move up"
+						onclick={() => state.move(i, -1)}
+						disabled={i === 0}>↑</button
 					>
 					<button
 						title="Move down"
-						onclick={() => move(i, 1)}
-						disabled={i === list.length - 1}>↓</button
+						onclick={() => state.move(i, 1)}
+						disabled={i === state.list.length - 1}>↓</button
 					>
 					<label>
 						<input type="checkbox" bind:checked={doc.hidden} />
@@ -112,13 +52,13 @@
 		{/each}
 
 		<div class="save">
-			<button onclick={save}>Save</button>
-			{#if savedOk}
+			<button onclick={() => state.save()}>Save</button>
+			{#if state.savedOk}
 				<span class="ok">Saved</span>
 			{/if}
 		</div>
-	{:else if error}
-		<p class="err">{error}</p>
+	{:else if state.error}
+		<p class="err">{state.error}</p>
 	{/if}
 </div>
 

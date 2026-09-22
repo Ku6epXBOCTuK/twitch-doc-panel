@@ -1,7 +1,8 @@
 # План рефакторинга: компоненты → мелкие, логика → ts
 
-Статус: план согласован. Реализация по шагам, после каждого шага — ревью и
-коммит (делает автор, не агент). Стартуем с шага 0.
+Статус: шаги 0–2 выполнены (vitest, логика → ts, state-классы на рунах).
+Реализация по шагам, после каждого шага — ревью и коммит (делает автор, не
+агент).
 
 ## Диагноз
 
@@ -17,8 +18,7 @@
 ## Принципы
 
 - Компоненты «тупые»: пропсы вниз, колбэки вверх, почти ноль логики.
-- Состояние и логика — в `.svelte.ts`-store'ах (Svelte 5 руны) и чистых
-  ts-модулях.
+- Состояние и логика — в $state рунах (`.svelte.ts`) и чистых ts-модулях.
 - Чистая логика покрыта юнит-тестами (vitest).
 - Решение о поведении не меняется — только структура. CSS-переменные (`--text`,
   `--muted`, …) остаются на корневом `.panel` — каскадом доходят до детей.
@@ -29,16 +29,17 @@
 src/
   shared/
     types.ts              + ConfigRow
-    docs.ts               НОВЫЙ: fetchDocsIndex, sortByOrder, applyHidden,
-                          buildConfigRows, moveRow, toBroadcasterConfig
+    docs.ts               НОВЫЙ: fetchDocsIndex, applyConfig, buildConfigRows,
+                          moveRow, toBroadcasterConfig
     md.ts                 + absolutizeUrls (перенос из viewer/App.svelte)
     md-sanitize.ts        НОВЫЙ: safeImg, safeLink (перенос из DocRenderer)
-    theme.svelte.ts       НОВЫЙ: реактивная тема (?theme + onContext)
+    theme-state.svelte.ts  НОВЫЙ: реактивная тема (?theme + onContext)
     DocRenderer.svelte    упрощается: helpers → md-sanitize.ts
   viewer/
-    viewer-store.svelte.ts   НОВЫЙ: status/docs/current/doc, loadIndex/loadDoc/
+    viewer-state.svelte.ts   НОВЫЙ: status/docs/current/doc, loadIndex/loadDoc/
                           prev/next/retry, init (?index/?doc + подписка на конфиг)
-    scroll-thumb.svelte.ts   НОВЫЙ: visible/top/height, update/onScroll, demoScroll
+    scroll-thumb-state.svelte.ts   НОВЫЙ: visible/top/height, update/onScroll,
+                          demoScroll
     App.svelte            ~70 строк: композиция + CSS-переменные темы
     StatusMessage.svelte  5 состояний (props: status, detail; onRetry)
     DocView.svelte        баннер + заголовок + DocRenderer (props: banner, title,
@@ -46,7 +47,7 @@ src/
     ScrollArea.svelte     main + .sb-thumb, children-snippet
     Pager.svelte          ‹ title › (props: index, count, title; onPrev/onNext)
   config/
-    config-store.svelte.ts   НОВЫЙ: savedCfg/indexUrl/list/status/load/move/
+    config-state.svelte.ts   НОВЫЙ: savedCfg/indexUrl/list/status/load/move/
                           toggle/save
     App.svelte            ~70 строк: композиция
     IndexUrlField.svelte  поле + подсказка + кнопка (bindable value, onSubmit)
@@ -69,8 +70,8 @@ src/
 
 - `absolutize` → `md.ts`; `docs.ts` с общей для viewer/config логикой;
   `md-sanitize.ts` для DocRenderer.
-- Тесты: `docs.test.ts` (fetch через мок, sort, rows, move), `md.test.ts`
-  (absolutize), `md-sanitize.test.ts`.
+- Тесты: `docs.test.ts` (fetch через мок, applyConfig, rows, move),
+  `md-sanitize.test.ts` (absolutizeUrls + safeImg/safeLink).
 - Проверка: `pnpm test`, `pnpm check`, ручной dev-прогон.
 
 #### Опционально: упрощение dispatch в DocRenderer
@@ -84,11 +85,11 @@ src/
   шаблоне, карту из `<script>` не собрать — вышел бы больший бойлерплейт.
 - Поведение не меняется: неизвестные теги мимо whitelist → warning.
 
-### Шаг 2. Store'ы на рунах (`.svelte.ts`) (~1.5 ч)
+### Шаг 2. State руны (`.svelte.ts`) (~1.5 ч)
 
-- `ViewerStore`, `ScrollThumb`, `theme`, `ConfigStore` — компоненты оставляют
-  только `$effect` для DOM-привязок (bind:this, ResizeObserver).
-- Скрипты App'ов сжимаются до `const store = new ViewerStore()` + разметка.
+- `ViewerState`, `ScrollThumbState`, `ThemeState`, `ConfigState` — компоненты
+  оставляют только `$effect` для DOM-привязок (bind:this, ResizeObserver).
+- Скрипты App'ов сжимаются до `const state = new ViewerState()` + разметка.
 - Проверка: `pnpm check`, dev обеих вьюх.
 
 ### Шаг 3. Разбивка viewer (~1.5 ч)
@@ -113,8 +114,8 @@ src/
 
 - **Scoped-стили**: селектор `button` в App сейчас стилизует и пейджер — при
   разбивке уедет в `viewer.css` или scoped в Pager.
-- **`$state` в классах** — работает в Svelte 5 в `.svelte.ts`, но проверить на
-  шаге 2 в первую очередь.
+- **`$state` в классах** — закрыто: работает в Svelte 5 в `.svelte.ts`
+  (проверено на шаге 2).
 - **DocRenderer сознательно не делим** — рекурсивный рендер по своей природе
   шаблон, дробление на per-tag компоненты усложнит код.
 

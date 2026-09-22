@@ -1,155 +1,30 @@
 <script lang="ts">
-	import { onContext, onBroadcasterConfig } from "../shared/twitch.ts";
-	import { resolveIndexUrl } from "../shared/content.ts";
-	import { mdToBlocks, absolutizeUrls, type MdBlock } from "../shared/md.ts";
-	import { applyConfig, fetchDocsIndex } from "../shared/docs.ts";
-	import type { BroadcasterConfig, DocEntry, Theme } from "../shared/types.ts";
 	import DocRenderer from "../shared/DocRenderer.svelte";
+	import { ThemeState } from "../shared/theme-state.svelte.ts";
+	import { ScrollThumbState } from "./scroll-thumb-state.svelte.ts";
+	import { VIEWER_STATUS, ViewerState } from "./viewer-state.svelte.ts";
 
-	// ?theme=light|dark — manual theme override (theme audit in the dev wrapper);
-	// without the parameter the theme comes from Twitch (locally — dark stub).
-	const qpTheme = new URLSearchParams(globalThis.location?.search ?? "").get(
-		"theme",
-	);
-	let theme = $state<Theme>(
-		qpTheme === "light" || qpTheme === "dark" ? qpTheme : "dark",
-	);
-	onContext((ctx) => {
-		if (!qpTheme && ctx.theme) theme = ctx.theme;
-	});
+	const viewer = new ViewerState();
+	const theme = new ThemeState();
+	const thumb = new ScrollThumbState();
 
-	// Channel config: {v:1, indexUrl, hidden:[], order:[]} — arrives
-	// asynchronously and changes when saved in the config view; the
-	// subscription catches both cases.
-	let cfg: BroadcasterConfig | null = null;
-	let lastCfgJson = "";
-
-	type Status =
-		"loading" | "ready" | "empty" | "error" | "need-config" | "bad-url";
-	interface LoadedDoc {
-		title: string;
-		blocks: MdBlock[];
-	}
-
-	let docs: DocEntry[] = $state([]);
-	let current = $state(0);
-	let status = $state<Status>("loading"); // loading|ready|empty|error|need-config|bad-url
-	let loadError = $state("");
-	let doc = $state<LoadedDoc | null>(null);
-	let docError = $state("");
-	let lastIndexUrl = "";
-
-	// ?index=<url> — manual override (tests, screenshots): load right away,
-	// without waiting for the config segment. Host filtering is done by the
-	// version CSP.
-	const qp = new URLSearchParams(globalThis.location?.search ?? "").get(
-		"index",
-	);
-	// ?doc=<id> — open a document by id (screenshots/audit): shows the pager.
-	const qpDoc = new URLSearchParams(globalThis.location?.search ?? "").get(
-		"doc",
-	);
-	if (qp) {
-		loadIndex(qp);
-	} else {
-		onBroadcasterConfig((c) => {
-			const json = JSON.stringify(c ?? null);
-			if (json === lastCfgJson) return;
-			lastCfgJson = json;
-			cfg = c;
-			const r = resolveIndexUrl(c);
-			if (r.error) {
-				status = r.error; // 'bad-url' | 'need-config' — matches viewer statuses
-				loadError = r.detail;
-			}
-			if (r.url) loadIndex(r.url);
-		});
-	}
-
-	async function loadIndex(indexUrl: string): Promise<void> {
-		lastIndexUrl = indexUrl;
-		status = "loading";
-		loadError = "";
-		const r = await fetchDocsIndex(indexUrl);
-		if (!r.ok) {
-			loadError = r.message;
-			status = "error";
-			return;
-		}
-		let list: DocEntry[] = r.entries;
-		if (cfg) list = applyConfig(list, cfg);
-		docs = list;
-		if (!list.length) {
-			status = "empty";
-			return;
-		}
-		status = "ready";
-		const idx = qpDoc ? list.findIndex((d) => d.id === qpDoc) : 0;
-		await loadDoc(idx >= 0 ? idx : 0);
-	}
-
-	async function loadDoc(i: number): Promise<void> {
-		current = i;
-		doc = null;
-		docError = "";
-		try {
-			const res = await fetch(docs[i].url);
-			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			const docBase = new URL(".", res.url).href;
-			const blocks = mdToBlocks(await res.text()).map(
-				(b) => absolutizeUrls(b, docBase) as MdBlock,
-			);
-			doc = { title: docs[i].title, blocks };
-		} catch (e) {
-			console.error(e);
-			docError = String((e as Error).message ?? e);
-		}
-	}
-
-	// --- Overlay scrollbar: translucent, on top of the content, visible only while scrolling ---
 	let mainEl = $state<HTMLElement | null>(null);
 	let contentEl = $state<HTMLElement | null>(null);
-	let thumb = $state({ visible: false, top: 0, height: 0 });
-	let hideTimer: ReturnType<typeof setTimeout> | undefined;
 
-	function updateThumb(): void {
-		const el = mainEl;
-		if (!el) return;
-		if (el.scrollHeight <= el.clientHeight + 1) {
-			thumb = { visible: false, top: 0, height: 0 };
-			return;
-		}
-		const height = Math.max(
-			28,
-			(el.clientHeight / el.scrollHeight) * el.clientHeight,
-		);
-		const top =
-			(el.scrollTop / (el.scrollHeight - el.clientHeight)) *
-			(el.clientHeight - height);
-		thumb = { ...thumb, height, top };
-	}
-
-	function onScroll(): void {
-		updateThumb();
-		thumb = { ...thumb, visible: true };
-		clearTimeout(hideTimer);
-		hideTimer = setTimeout(() => {
-			thumb = { ...thumb, visible: false };
-		}, 700);
-	}
-
-	// Recalculate on size changes (document switch, image loading)
+	// Recalculate the thumb on size changes (document switch, image loading)
+	// and demo-scroll for screenshots (?demoScroll=1).
 	const demoScroll = new URLSearchParams(globalThis.location?.search ?? "").has(
 		"demoScroll",
 	);
 	$effect(() => {
+		thumb.bind(mainEl);
 		const el = mainEl;
 		const content = contentEl;
 		if (!el || !content) return;
 		const ro = new ResizeObserver(() => {
-			updateThumb();
+			thumb.bind(el);
 			// Demo frame for screenshots: scroll the content so the thumb and
-			// shadows are in frame (enabled by ?demoScroll=1).
+			// shadows are in frame.
 			if (
 				demoScroll &&
 				el.scrollHeight > el.clientHeight &&
@@ -166,50 +41,51 @@
 			if (timer) clearInterval(timer);
 		};
 	});
-
-	const prev = () => current > 0 && loadDoc(current - 1);
-	const next = () => current < docs.length - 1 && loadDoc(current + 1);
 </script>
 
-<div class="panel" data-theme={theme}>
-	{#if status === "loading"}
+<div class="panel" data-theme={theme.theme}>
+	{#if viewer.status === VIEWER_STATUS.LOADING}
 		<p class="muted center">Loading…</p>
-	{:else if status === "need-config"}
+	{:else if viewer.status === VIEWER_STATUS.NEED_CONFIG}
 		<p class="center">No content URL configured.</p>
 		<p class="muted center">
 			Open the extension config panel and set the index.json URL.
 		</p>
-	{:else if status === "bad-url"}
+	{:else if viewer.status === VIEWER_STATUS.BAD_URL}
 		<p class="center">
 			The content URL must be an http(s) URL or a relative path.
 		</p>
-		<p class="muted center">{loadError}</p>
-	{:else if status === "error"}
+		<p class="muted center">{viewer.loadError}</p>
+	{:else if viewer.status === VIEWER_STATUS.ERROR}
 		<p class="center">Failed to load documents.</p>
-		<p class="muted center">{loadError}</p>
+		<p class="muted center">{viewer.loadError}</p>
 		<p class="center">
-			<button onclick={() => loadIndex(lastIndexUrl)}>Retry</button>
+			<button onclick={viewer.retry}>Retry</button>
 		</p>
-	{:else if status === "empty"}
+	{:else if viewer.status === VIEWER_STATUS.EMPTY}
 		<p class="muted center">No documents yet.</p>
 	{:else}
-		{#if docs[current]?.banner}
+		{#if viewer.currentDoc?.banner}
 			<img
 				class="banner"
-				src={docs[current].banner}
-				alt={docs[current].title}
+				src={viewer.currentDoc.banner}
+				alt={viewer.currentDoc.title}
 			/>
 		{/if}
 		<div class="scrollwrap">
-			<main bind:this={mainEl} onscroll={onScroll}>
+			<main bind:this={mainEl} onscroll={() => thumb.onScroll()}>
 				<div bind:this={contentEl}>
-					{#if !docs[current]?.banner}
-						<h1 class="title">{doc?.title ?? docs[current].title}</h1>
+					{#if !viewer.currentDoc?.banner}
+						<h1 class="title">
+							{viewer.doc?.title ?? viewer.currentDoc?.title}
+						</h1>
 					{/if}
-					{#if docError}
-						<p class="muted">Failed to load the document ({docError}).</p>
-					{:else if doc}
-						<DocRenderer nodes={doc.blocks} />
+					{#if viewer.docError}
+						<p class="muted">
+							Failed to load the document ({viewer.docError}).
+						</p>
+					{:else if viewer.doc}
+						<DocRenderer nodes={viewer.doc.blocks} />
 					{:else}
 						<p class="muted">Loading…</p>
 					{/if}
@@ -224,19 +100,19 @@
 				></div>
 			{/if}
 		</div>
-		{#if docs.length > 1}
+		{#if viewer.docs.length > 1}
 			<nav>
 				<button
-					onclick={prev}
-					disabled={current === 0}
+					onclick={viewer.prev}
+					disabled={viewer.current === 0}
 					aria-label="Previous document">‹</button
 				>
-				<span class="doc-title" title={docs[current]?.title}
-					>{docs[current]?.title}</span
+				<span class="doc-title" title={viewer.currentDoc?.title}
+					>{viewer.currentDoc?.title}</span
 				>
 				<button
-					onclick={next}
-					disabled={current === docs.length - 1}
+					onclick={viewer.next}
+					disabled={viewer.current === viewer.docs.length - 1}
 					aria-label="Next document">›</button
 				>
 			</nav>

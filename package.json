@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "vite",
 		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"test": "vitest run",
 		"build:bundle": "vite build -c vite.build.ts",
 		"build": "npm run build:bundle && node scripts/pack.ts",
 		"build:fixtures": "node builder/build.ts fixtures",
@@ -27,6 +28,7 @@
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.7.6",
 		"typescript": "^5.9.3",
-		"vite": "^6.0.0"
+		"vite": "^6.0.0",
+		"vitest": "^5.0.1"
 	}
 }

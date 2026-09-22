@@ -62,12 +62,12 @@
       .md/баннеров, снимок через `lib/browser.ts` (async), cleanup в
       try/finally; на выходе — оркестратор вместо god-script; весь вывод — на
       английском
-- [ ] Шаг 3. `scripts/pack.ts` переписать на PowerShell (`CreateFromDirectory`
+- [x] Шаг 3. `scripts/pack.ts` переписать на PowerShell (`CreateFromDirectory`
       через `powershell.exe -NoProfile`), с проверкой
       `dist/viewer`/`dist/config` и путями от `repoRoot`; в
       `scripts/install-cli.ts` добавить проверку существования
       `builder/build.ts` до записи шима; весь вывод — на английском
-- [ ] Проверка (одним заходом): `npm run check`, `npm run assets`,
+- [x] Проверка (одним заходом): `npm run check`, `npm run assets`,
       `npm run screenshots`, `npm run build`, `npm run install-cli` — всё
       зелёное, temp-папки почищены, зип собран
 

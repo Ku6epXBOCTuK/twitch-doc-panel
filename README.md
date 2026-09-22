@@ -31,6 +31,9 @@ node builder/build.ts <папка с md>             │    на index.json (л�
 ```txt
 src/viewer/                    вьювер: пейджер документов, тема Twitch
 src/config/                    панель управления: ссылка на index.json, порядок, скрытие
+src/viewer.html                html-обёртка вьювера (вход билда, Viewer Path в консоли)
+src/config.html                html-обёртка конфига (вход билда, Panel Config Path)
+src/dev.html                   dev-only страница аудита (в билд не попадает)
 src/shared/types.ts            общие типы: front-matter (DocFrontMatter), index.json (DocEntry),
                                конфиг канала (BroadcasterConfig), тема
 src/shared/md.ts               runtime-конвертация Markdown → мини-AST (типизированный)

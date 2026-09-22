@@ -5,7 +5,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Dev — DocPanel</title>
 		<!-- Dev-only обёртка: в билд не попадает (в rollupOptions.input только
-		     viewer.html / config.html). Сerveится Vite dev-сервером как статика. -->
+		     src/viewer.html / src/config.html). Сerveится Vite dev-сервером как статика. -->
 		<style>
 			html,
 			body {
@@ -135,13 +135,13 @@
 			<section>
 				<h2>viewer <small>318×500</small></h2>
 				<div class="card">
-					<iframe id="viewer" src="/viewer.html" title="viewer"></iframe>
+					<iframe id="viewer" src="/src/viewer.html" title="viewer"></iframe>
 				</div>
 			</section>
 			<section>
 				<h2>config</h2>
 				<div class="card wide">
-					<iframe id="config" src="/config.html" title="config"></iframe>
+					<iframe id="config" src="/src/config.html" title="config"></iframe>
 				</div>
 			</section>
 		</main>
@@ -155,7 +155,7 @@
 			const buttons = [...document.querySelectorAll(".toggle button")];
 			function setTheme(t) {
 				// ?theme= поддерживается вьювером (шаг 3): перекрытие темы для аудита.
-				viewer.src = "/viewer.html?theme=" + t;
+				viewer.src = "/src/viewer.html?theme=" + t;
 				for (const b of buttons)
 					b.classList.toggle("on", b.dataset.theme === t);
 			}

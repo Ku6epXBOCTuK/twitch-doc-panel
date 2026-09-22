@@ -47,7 +47,7 @@ function devContent(): Plugin {
 	};
 }
 
-// Dev-only: корень (/) открывает страницу аудита dev.html — не нужно помнить
+// Dev-only: корень (/) открывает страницу аудита src/dev.html — не нужно помнить
 // про отдельный путь, npm run dev → https://localhost:8080/
 function devShell(): Plugin {
 	return {
@@ -57,14 +57,14 @@ function devShell(): Plugin {
 			server.middlewares.use((req, res, next) => {
 				const url = (req.url ?? "").split("?")[0];
 				if (url !== "/") return next();
-				req.url = "/dev.html";
+				req.url = "/src/dev.html";
 				next();
 			});
 		},
 	};
 }
 
-// Dev-сервер: обслуживает /viewer.html и /config.html на одном origin.
+// Dev-сервер: обслуживает /src/viewer.html и /src/config.html на одном origin.
 export default defineConfig({
 	plugins: [svelte(), devShell(), devContent()],
 	server: { port: 8080, ...(https ? { https } : {}) },

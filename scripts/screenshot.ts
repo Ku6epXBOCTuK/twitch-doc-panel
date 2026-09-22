@@ -1,6 +1,6 @@
 // Скриншоты панели для «Version Details» (1024×768, 4:3 — как требует Twitch):
 //   npm run screenshots
-// Как работает: сперва собирает вьюер (npm run build:viewer), собирает временную
+// Как работает: сперва собирает бандл (npm run build:bundle), собирает временную
 // папку (viewer.html + демо-контент + демо-заголовок), поднимает ОДНОРАЗОВЫЙ
 // локальный сервер на случайном порту (только 127.0.0.1, закрывается после
 // снимка) и снимает панель headless Chrome/Edge.
@@ -22,19 +22,18 @@ const root = repoRoot;
 const OUT_DIR = path.join(root, "assets", "screenshots");
 const WRAPPER = path.join(root, "scripts", "templates", "screenshot.html");
 
-// 1. Сборка вьюера: скриншоты всегда со свежего бандла (dist/viewer),
-//    иначе в кадр уедет старый рендер из app/, собранный при прошлом pack.
+// 1. Сборка бандла: скриншоты всегда со свежего dist/.
 //    vite вызывается через node напрямую — без npm (на Windows .cmd-обёртка
 //    требует shell, а shell:true даёт DeprecationWarning).
-function buildViewer(): void {
+function buildBundle(): void {
 	const viteBin = path.join(root, "node_modules", "vite", "bin", "vite.js");
 	const build = spawnSync(
 		process.execPath,
-		[viteBin, "build", "-c", "vite.build.viewer.ts"],
+		[viteBin, "build", "-c", "vite.build.ts"],
 		{ stdio: "inherit", cwd: root },
 	);
 	if (build.status !== 0) {
-		console.error("build:viewer failed - screenshots cancelled");
+		console.error("build:bundle failed - screenshots cancelled");
 		process.exit(build.status ?? 1);
 	}
 }
@@ -62,17 +61,15 @@ async function stageDocs(docsDir: string, staging: string): Promise<void> {
 	console.log(`staged: ${fs.readdirSync(staging).join(", ")}`);
 }
 
-// 3. viewer.html (собранный build:viewer) + его ассеты из dist/viewer
+// 3. viewer.html + его ассеты из dist/
 function stageViewer(staging: string): void {
 	fs.copyFileSync(
-		path.join(root, "dist", "viewer", "viewer.html"),
+		path.join(root, "dist", "viewer.html"),
 		path.join(staging, "viewer.html"),
 	);
-	fs.cpSync(
-		path.join(root, "dist", "viewer", "assets"),
-		path.join(staging, "assets"),
-		{ recursive: true },
-	);
+	fs.cpSync(path.join(root, "dist", "assets"), path.join(staging, "assets"), {
+		recursive: true,
+	});
 }
 
 // 4. Страница-обёртка: панель в контексте, как она выглядит на канале
@@ -101,7 +98,7 @@ async function shoot(
 }
 
 async function main(): Promise<void> {
-	buildViewer();
+	buildBundle();
 	findBrowser();
 	fs.mkdirSync(OUT_DIR, { recursive: true });
 	const dirs = createTempDirs("panel-shot");

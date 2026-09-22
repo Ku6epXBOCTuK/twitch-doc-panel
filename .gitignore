@@ -1,6 +1,6 @@
 node_modules/
 dist/
-app/
+doc-panel.zip
 certs/
 fixtures/index.json
 *.log

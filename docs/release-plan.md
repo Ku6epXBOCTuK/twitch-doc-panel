@@ -25,7 +25,7 @@
 
 1. **Asset Hosting:** Type = Panel; Viewer Path `viewer.html`; Config Path
    `config.html`; Panel Height = 500.
-2. **Files:** загрузить `app/doc-panel.zip` (пути в zip = путям выше).
+2. **Files:** загрузить `doc-panel.zip` (пути в zip = путям выше).
 3. **Monetization:** Bits No, Subscription No.
 4. **Access:** внести `Testing Account Allowlist` (ID аккаунтов).
 5. **CSP-поля** (`Allowlist for Image/Media/URL-Fetching Domains`): внести

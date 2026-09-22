@@ -9,7 +9,7 @@ Twitch Panel Extension: одна панель (318×500), внутри — не�
 
 ```txt
 РЕПОЗИТОРИЙ КОНТЕНТА (отдельный)          РАСШИРЕНИЕ (этот репозиторий)
-  docs/*.md  +  index.json                 app/viewer.html + app/config.html
+  docs/*.md  +  index.json                 dist/viewer.html + dist/config.html
       ↑ утилита составляет список              │
       │                                        │ 1. из конфиг-сегмента берёт ссылку
 node builder/build.ts <папка с md>             │    на index.json (любой http(s) хост)
@@ -38,8 +38,9 @@ src/shared/DocRenderer.svelte  рекурсивный рендерер (без {
 builder/build.ts               утилита: генерирует index.json по папке с .md
 fixtures/*.md                тестовые фикстуры: dev-режим и скриншоты
                              (не рабочий контент, не источник правды)
-app/                           итог для деплоя: viewer.html + config.html
-                               (в .gitignore — собирается `npm run build`, на сервер копируется вручную)
+dist/                          итог сборки: viewer.html + config.html + assets/
+                              (в .gitignore — собирается `npm run build`,
+                              из него же пишется doc-panel.zip)
 ```
 
 ## Команды
@@ -49,7 +50,7 @@ app/                           итог для деплоя: viewer.html + confi
 | `npm run check`          | svelte-check: типизация всего проекта (Svelte + TS)                       |
 | `npm run build:fixtures` | утилита: `fixtures/*.md` → `fixtures/index.json`                          |
 | `npm run install-cli`    | создать/обновить глобальную команду `build-docs` (`~/bin/build-docs.cmd`) |
-| `npm run build`          | фронтенд → `app/` (viewer.html + config.html)                             |
+| `npm run build`          | фронтенд → `dist/` + `doc-panel.zip` (viewer.html + config.html)          |
 | `npm run dev`            | dev-сервер :8080, корень `/` — страница аудита верстки                    |
 
 ## Репозиторий контента
@@ -90,9 +91,10 @@ build-docs docs       # docs/*.md → docs/index.json
 
 ## Деплой расширения
 
-`app/` (два html) — в папку за nginx; Base URI в консоли Twitch = URL этой папки
-со слэшем на конце. Контент расширению не нужен — он грузится с репозитория
-контента.
+`doc-panel.zip` (собирается `npm run build`) — загрузить в консоль Twitch;
+альтернатива (nginx) — содержимое `dist/` (два html + assets). Base URI в
+консоли Twitch = URL этой папки со слэшем на конце. Контент расширению не нужен
+— он грузится с репозитория контента.
 
 ## Dev-аудит верстки (без Twitch)
 

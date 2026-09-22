@@ -4,15 +4,15 @@
 // поднимает ОДНОРАЗОВЫЙ локальный сервер на случайном порту (только 127.0.0.1,
 // закрывается сам после снимка) и снимает панель headless Chrome/Edge.
 // Обновить демо-контент: правь content/docs/*.md и просто запусти скрипт снова.
+import matter from "gray-matter";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
-import path from "node:path";
-import process from "node:process";
-import os from "node:os";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { spawn } from "node:child_process";
-import matter from "gray-matter";
+import os from "node:os";
+import path from "node:path";
+import process from "node:process";
 import { DEFAULT_DOC_ORDER, type DocEntry } from "../src/shared/types.ts";
 
 const root = process.cwd();
@@ -114,11 +114,11 @@ fs.writeFileSync(
   h1 span { color: #bf94ff; }
   p { font-size: 18px; color: #adadb8; margin: 0; line-height: 1.55; }
   .card {
-    width: 318px; height: 496px; border-radius: 10px; overflow: hidden;
+    width: 318px; height: 500px; border-radius: 10px; overflow: hidden;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
     flex-shrink: 0;
   }
-  iframe { width: 318px; height: 496px; border: 0; display: block; }
+  iframe { width: 318px; height: 500px; border: 0; display: block; }
 </style>
 <div>
   <div class="badge">Twitch Extension</div>

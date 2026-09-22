@@ -24,7 +24,7 @@ CORS-дружелюбный CDN (jsDelivr / raw.githubusercontent.com — оба
 | Факт              | Значение                                                                                                        |
 | ----------------- | --------------------------------------------------------------------------------------------------------------- |
 | Тип расширения    | **Panel** — «коробка» в блоке «О канале», под плеером                                                           |
-| Размер            | **318 × 496 px**, жёстко (чтобы не было скролла iframe); скроллим внутренний контент                            |
+| Размер            | **318 × 500 px**, жёстко (чтобы не было скролла iframe); скроллим внутренний контент                            |
 | Активность        | Панель видна **даже когда канал офлайн** — идеально для био/справки                                             |
 | Pop-out           | Зритель может открыть расширение в отдельном окне побольше                                                      |
 | Хостинг кода      | zip-загрузка на CDN Twitch (`*.ext-twitch.tv`) ИЛИ свой HTTPS-хостинг (Base URI)                                |
@@ -48,7 +48,7 @@ CORS-дружелюбный CDN (jsDelivr / raw.githubusercontent.com — оба
 GitHub-репозиторий (public)                Twitch
 ├─ docs/
 │  ├─ index.json      ← манифест контента    ┌─────────────────────────────┐
-│  ├─ rules.md        ← сами документы       │ Extension (Panel 318×496)   │
+│  ├─ rules.md        ← сами документы       │ Extension (Panel 318×500)   │
 │  ├─ faq.md                                 │  Svelte 5 + Vite            │
 │  └─ assets/                                │  ┌───────────────────────┐  │
 │     ├─ rules-header.png                    │  │ табы/пейджер доков    │  │
@@ -132,7 +132,7 @@ URL заголовочной картинки, кнопка «Сохранить
 
 ### Минусы / ограничения
 
-- 318×496 px — тесно для длинных документов; обязателен внутренний скролл и
+- 318×500 px — тесно для длинных документов; обязателен внутренний скролл и
   мобильный дизайн; pop-out спасает частично.
 - CSP-allowlist: каждый внешний домен (jsDelivr, GitHub) надо руками вносить в
   консоли на версию — забыл = контент молча не грузится.
@@ -222,7 +222,7 @@ CSS-фреймворк не нужен — свои стили на 318px про
   [https://dev.twitch.tv/docs/extensions/](https://dev.twitch.tv/docs/extensions/)
 - Building (Helper, Config Service 5 КБ, PubSub):
   [https://dev.twitch.tv/docs/extensions/building/](https://dev.twitch.tv/docs/extensions/building/)
-- Designing (панель 318×496, pop-out):
+- Designing (панель 318×500, pop-out):
   [https://dev.twitch.tv/docs/extensions/designing/](https://dev.twitch.tv/docs/extensions/designing/)
 - Life cycle (Local Test, ревью, Released):
   [https://dev.twitch.tv/docs/extensions/life-cycle/](https://dev.twitch.tv/docs/extensions/designing/)

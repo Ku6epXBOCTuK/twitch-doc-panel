@@ -9,7 +9,7 @@
       (живой index.json, CORS для Local Test, `/` → `dev.html`)
 - [x] Шаг 3. `src/viewer/App.svelte` — `?theme=light|dark` для аудита тем
 - [x] Шаг 4. `src/config/App.svelte` — предзаполнение поля индекса в dev
-- [x] Шаг 5. `dev.html` — страница-обёртка (viewer 318×496 + config + темы)
+- [x] Шаг 5. `dev.html` — страница-обёртка (viewer 318×500 + config + темы)
 - [x] Шаг 6. Единая dev-логика: только `content.js` и `twitch.js` через
       `import.meta.env.DEV`
 - [x] Шаг 7. README — раздел про dev-аудит
@@ -30,7 +30,7 @@
 
 `npm run dev` → `https://localhost:8080/` (HTTPS с mkcert-сертификатом из
 `certs/`, без него HTTP). Корень `/` отдаёт `dev.html` — страницу аудита: панель
-в реальном размере 318×496 с живым контентом из `content/docs/`, рядом
+в реальном размере 318×500 с живым контентом из `content/docs/`, рядом
 config-вью и переключатель темы. Без Twitch-конфига, без ручной генерации
 индекса. Local Test в консоли остаётся для проверки в контексте Twitch.
 
@@ -75,7 +75,7 @@ Middleware на `GET /content/docs/index.json`: на каждый запрос �
 
 ### Шаг 5. `dev.html` — страница-обёртка (dev-only)
 
-- viewer в рамке ровно 318×496 на фоне в духе Twitch — верстка в реальном
+- viewer в рамке ровно 318×500 на фоне в духе Twitch — верстка в реальном
   контексте;
 - рядом config-вью (640×640);
 - переключатель dark/light — перезагружает viewer-iframe с `?theme=`.

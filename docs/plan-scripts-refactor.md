@@ -55,9 +55,9 @@
       (`renderSvgToPng()`); `scripts/assets.ts` и `scripts/render-svg.ts`
       переписать тонкими потребителями этих либ (убрать все дубли, починить
       утечку temp при ошибке); весь вывод в консоль — на английском (ASCII)
-- [ ] Шаг 2. `scripts/screenshot.ts`: вынести страницу в
+- [x] Шаг 2. `scripts/screenshot.ts`: вынести страницу в
       `scripts/templates/screenshot.html`, сервер — в
-      `scripts/lib/static-server.ts` (MIME: jpg, jpeg, webp, svg, ico), staging
+      `scripts/lib/static-server.ts` (handler `sirv`, lifecycle — наш), staging
       перевести на `buildIndex()` из `builder/build.ts` + копирование
       .md/баннеров, снимок через `lib/browser.ts` (async), cleanup в
       try/finally; на выходе — оркестратор вместо god-script; весь вывод — на

@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>shot</title>
+<style>
+	html,
+	body {
+		margin: 0;
+		height: 100%;
+	}
+	body {
+		background:
+			radial-gradient(
+				900px 520px at 72% -10%,
+				rgba(145, 70, 255, 0.35),
+				transparent 60%
+			),
+			radial-gradient(
+				760px 520px at 8% 112%,
+				rgba(100, 65, 165, 0.45),
+				transparent 60%
+			),
+			#0e0e10;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 72px;
+		font-family: "Segoe UI", system-ui, sans-serif;
+		color: #efeff1;
+	}
+	.badge {
+		display: inline-block;
+		margin-bottom: 20px;
+		padding: 6px 16px;
+		border: 1px solid #9146ff;
+		border-radius: 999px;
+		color: #bf94ff;
+		font-size: 13px;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+	h1 {
+		font-size: 46px;
+		line-height: 1.15;
+		margin: 0 0 14px;
+	}
+	h1 span {
+		color: #bf94ff;
+	}
+	p {
+		font-size: 18px;
+		color: #adadb8;
+		margin: 0;
+		line-height: 1.55;
+	}
+	.card {
+		width: 318px;
+		height: 500px;
+		box-shadow:
+			0 30px 80px rgba(0, 0, 0, 0.55),
+			0 0 0 1px rgba(255, 255, 255, 0.08);
+		flex-shrink: 0;
+	}
+	iframe {
+		width: 318px;
+		height: 500px;
+		border: 0;
+		display: block;
+	}
+</style>
+<div>
+	<div class="badge">Twitch Extension</div>
+	<h1>DocPanel</h1>
+	<p>Multiple documents<br />in one channel panel</p>
+</div>
+<div class="card">
+	<iframe src="/viewer.html?index=/index.json"></iframe>
+</div>
+<script>
+	if (new URLSearchParams(location.search).has("scroll")) {
+		document.querySelector("iframe").src =
+			"/viewer.html?index=/index.json&doc=rules";
+	}
+</script>

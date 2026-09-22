@@ -2,235 +2,137 @@
 //   npm run screenshots
 // Как работает: сперва собирает вьюер (npm run build:viewer), собирает временную
 // папку (viewer.html + демо-контент + демо-заголовок), поднимает ОДНОРАЗОВЫЙ
-// локальный сервер на случайном порту (только 127.0.0.1, закрывается сам после
+// локальный сервер на случайном порту (только 127.0.0.1, закрывается после
 // снимка) и снимает панель headless Chrome/Edge.
 // Обновить демо-контент: правь fixtures/*.md и просто запусти скрипт снова.
-import matter from "gray-matter";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
-import fsp from "node:fs/promises";
-import http from "node:http";
-import type { AddressInfo } from "node:net";
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { DEFAULT_DOC_ORDER, type DocEntry } from "../src/shared/types.ts";
+import { buildIndex } from "../builder/build.ts";
+import {
+	createTempDirs,
+	findBrowser,
+	screenshotChrome,
+} from "./lib/browser.ts";
+import { fail, repoRoot } from "./lib/repo.ts";
+import { startStaticServer } from "./lib/static-server.ts";
 
-const root = process.cwd();
-
-function findBrowser(): string {
-	const candidates = [
-		process.env.CHROME_PATH,
-		"C:/Program Files/Google/Chrome/Application/chrome.exe",
-		"C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-		path.join(
-			os.homedir(),
-			"AppData/Local/Google/Chrome/Application/chrome.exe",
-		),
-		"C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-		"C:/Program Files/Microsoft/Edge/Application/msedge.exe",
-	].filter((c): c is string => Boolean(c));
-	for (const c of candidates) {
-		if (fs.existsSync(c)) return c;
-	}
-	throw new Error(
-		"Не найден Chrome/Edge — установи или укажи путь в переменной CHROME_PATH",
-	);
-}
+const root = repoRoot;
+const OUT_DIR = path.join(root, "assets", "screenshots");
+const WRAPPER = path.join(root, "scripts", "templates", "screenshot.html");
 
 // 1. Сборка вьюера: скриншоты всегда со свежего бандла (dist/viewer),
 //    иначе в кадр уедет старый рендер из app/, собранный при прошлом pack.
 //    vite вызывается через node напрямую — без npm (на Windows .cmd-обёртка
 //    требует shell, а shell:true даёт DeprecationWarning).
-const viteBin = path.join(root, "node_modules", "vite", "bin", "vite.js");
-const build = spawnSync(
-	process.execPath,
-	[viteBin, "build", "-c", "vite.build.viewer.ts"],
-	{ stdio: "inherit", cwd: root },
-);
-if (build.status !== 0) {
-	console.error("build:viewer не собрался — скриншоты отменены");
-	process.exit(build.status ?? 1);
+function buildViewer(): void {
+	const viteBin = path.join(root, "node_modules", "vite", "bin", "vite.js");
+	const build = spawnSync(
+		process.execPath,
+		[viteBin, "build", "-c", "vite.build.viewer.ts"],
+		{ stdio: "inherit", cwd: root },
+	);
+	if (build.status !== 0) {
+		console.error("build:viewer failed - screenshots cancelled");
+		process.exit(build.status ?? 1);
+	}
 }
 
-const browser = findBrowser();
-const STAGING = fs.mkdtempSync(path.join(os.tmpdir(), "panel-shot-"));
-const PROFILE = fs.mkdtempSync(path.join(os.tmpdir(), "panel-shot-profile-"));
-const OUT_DIR = path.join(root, "assets", "screenshots");
-fs.mkdirSync(OUT_DIR, { recursive: true });
-
-// 2. Контент: .md из папки (аргумент, по умолчанию fixtures) + index.json.
-//    Баннер banners/<id>.png|jpg|jpeg|webp копируется в стейджинг и становится banner.
-const docsDir = path.resolve(root, process.argv[2] ?? "fixtures");
-const index: DocEntry[] = [];
-for (const f of (await fsp.readdir(docsDir)).filter((f) => f.endsWith(".md"))) {
-	const { data } = matter(await fsp.readFile(path.join(docsDir, f), "utf8"));
-	const id = f.replace(/\.md$/, "");
-	fs.copyFileSync(path.join(docsDir, f), path.join(STAGING, f));
-	let banner: string | null = null;
-	for (const ext of ["png", "jpg", "jpeg", "webp"]) {
-		const bf = `banners/${id}.${ext}`;
-		if (fs.existsSync(path.join(docsDir, bf))) {
-			fs.mkdirSync(path.join(STAGING, "banners"), { recursive: true });
-			fs.copyFileSync(path.join(docsDir, bf), path.join(STAGING, bf));
-			banner = bf;
-			break;
+// 2. Контент: индекс через общий buildIndex (title/order/hidden/баннеры —
+//    те же правила, что и в билде контента), сами .md и баннеры копируются
+//    в стейджинг отдельно.
+async function stageDocs(docsDir: string, staging: string): Promise<void> {
+	const { index } = await buildIndex(docsDir);
+	for (const entry of index) {
+		fs.copyFileSync(
+			path.join(docsDir, entry.url),
+			path.join(staging, entry.url),
+		);
+		if (entry.banner) {
+			const dest = path.join(staging, entry.banner);
+			fs.mkdirSync(path.dirname(dest), { recursive: true });
+			fs.copyFileSync(path.join(docsDir, entry.banner), dest);
 		}
 	}
-	index.push({
-		id,
-		title:
-			typeof data.title === "string" && data.title.trim() ? data.title : id,
-		order: Number.isFinite(data.order)
-			? (data.order as number)
-			: DEFAULT_DOC_ORDER,
-		hidden: false,
-		banner,
-		url: f,
-	});
+	fs.writeFileSync(
+		path.join(staging, "index.json"),
+		JSON.stringify(index, null, 2),
+	);
+	console.log(`staged: ${fs.readdirSync(staging).join(", ")}`);
 }
-index.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
-fs.writeFileSync(
-	path.join(STAGING, "index.json"),
-	JSON.stringify(index, null, 2),
-);
-console.log("staging:", fs.readdirSync(STAGING).join(", "));
 
 // 3. viewer.html (собранный build:viewer) + его ассеты из dist/viewer
-fs.copyFileSync(
-	path.join(root, "dist", "viewer", "viewer.html"),
-	path.join(STAGING, "viewer.html"),
-);
-fs.cpSync(
-	path.join(root, "dist", "viewer", "assets"),
-	path.join(STAGING, "assets"),
-	{ recursive: true },
-);
+function stageViewer(staging: string): void {
+	fs.copyFileSync(
+		path.join(root, "dist", "viewer", "viewer.html"),
+		path.join(staging, "viewer.html"),
+	);
+	fs.cpSync(
+		path.join(root, "dist", "viewer", "assets"),
+		path.join(staging, "assets"),
+		{ recursive: true },
+	);
+}
 
 // 4. Страница-обёртка: панель в контексте, как она выглядит на канале
-fs.writeFileSync(
-	path.join(STAGING, "index.html"),
-	`<!doctype html>
-<meta charset="utf-8">
-<title>shot</title>
-<style>
-  html, body { margin: 0; height: 100%; }
-  body {
-    background:
-      radial-gradient(900px 520px at 72% -10%, rgba(145, 70, 255, 0.35), transparent 60%),
-      radial-gradient(760px 520px at 8% 112%, rgba(100, 65, 165, 0.45), transparent 60%),
-      #0e0e10;
-    display: flex; align-items: center; justify-content: center; gap: 72px;
-    font-family: 'Segoe UI', system-ui, sans-serif; color: #efeff1;
-  }
-  .badge {
-    display: inline-block; margin-bottom: 20px; padding: 6px 16px;
-    border: 1px solid #9146FF; border-radius: 999px; color: #bf94ff;
-    font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase;
-  }
-  h1 { font-size: 46px; line-height: 1.15; margin: 0 0 14px; }
-  h1 span { color: #bf94ff; }
-  p { font-size: 18px; color: #adadb8; margin: 0; line-height: 1.55; }
-  .card {
-    width: 318px; height: 500px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
-    flex-shrink: 0;
-  }
-  iframe { width: 318px; height: 500px; border: 0; display: block; }
-</style>
-<div>
-  <div class="badge">Twitch Extension</div>
-  <h1>DocPanel</h1>
-  <p>Multiple documents<br>in one channel panel</p>
-</div>
-<div class="card"><iframe src="/viewer.html?index=/index.json"></iframe></div>
-<script>
-  if (new URLSearchParams(location.search).has('scroll')) {
-    document.querySelector('iframe').src = '/viewer.html?index=/index.json&doc=rules';
-  }
-</script>
-`,
-);
+function stageWrapper(staging: string): void {
+	fs.copyFileSync(WRAPPER, path.join(staging, "index.html"));
+}
 
-// 5. Одноразовый сервер
-const MIME: Record<string, string> = {
-	".html": "text/html",
-	".json": "application/json",
-	".md": "text/markdown",
-	".js": "text/javascript",
-	".css": "text/css",
-	".png": "image/png",
-};
-const server = http.createServer((req, res) => {
-	const rel = decodeURIComponent((req.url ?? "").split("?")[0]);
-	const file = path.join(STAGING, rel === "/" ? "index.html" : rel);
-	if (
-		!file.startsWith(STAGING) ||
-		!fs.existsSync(file) ||
-		!fs.statSync(file).isFile()
-	) {
-		res.statusCode = 404;
-		return res.end("nope");
-	}
-	res.setHeader(
-		"Content-Type",
-		(MIME[path.extname(file)] ?? "application/octet-stream") +
-			"; charset=utf-8",
-	);
-	fs.createReadStream(file).pipe(res);
-});
-await new Promise<void>((resolve) =>
-	server.listen(0, "127.0.0.1", () => resolve()),
-);
-const port = (server.address() as AddressInfo).port;
-
-// 6. Снимок. ВАЖНО: chrome запускается через асинхронный spawn — сервер живёт
+// ВАЖНО: chrome запускается через асинхронный spawn — сервер живёт
 // в этом же процессе, и синхронный spawnSync заблокировал бы event loop
 // (сервер перестал бы отвечать, chrome завис бы навечно).
-function shoot(
-	w: number,
-	h: number,
+async function shoot(
+	port: number,
+	profile: string,
 	outName: string,
 	urlPath: string,
 ): Promise<void> {
-	const out = path.join(OUT_DIR, outName);
-	return new Promise((resolve, reject) => {
-		const child = spawn(
-			browser,
-			[
-				"--headless=new",
-				`--user-data-dir=${PROFILE}`,
-				`--screenshot=${out}`,
-				`--window-size=${w},${h}`,
-				"--hide-scrollbars",
-				"--timeout=8000",
-				`http://127.0.0.1:${port}${urlPath}`,
-			],
-			{ stdio: "ignore" },
-		);
-		child.on("error", reject);
-		child.on("exit", (code) => {
-			if (code !== 0 || !fs.existsSync(out)) {
-				reject(
-					new Error(`chrome завершился с кодом ${code}, скриншот не снят`),
-				);
-			} else {
-				console.log(`${outName}  (${w}×${h})`);
-				resolve();
-			}
-		});
+	await screenshotChrome({
+		url: `http://127.0.0.1:${port}${urlPath}`,
+		out: path.join(OUT_DIR, outName),
+		width: 1024,
+		height: 768,
+		profile,
+		timeoutMs: 8000,
 	});
+	console.log(`${outName} (1024x768)`);
 }
 
-await shoot(1024, 768, "panel-1024x768.png", "/");
-await shoot(1024, 768, "panel-rules-1024x768.png", "/?scroll=1");
+async function main(): Promise<void> {
+	buildViewer();
+	findBrowser();
+	fs.mkdirSync(OUT_DIR, { recursive: true });
+	const dirs = createTempDirs("panel-shot");
+	try {
+		const docsDir = path.resolve(root, process.argv[2] ?? "fixtures");
+		await stageDocs(docsDir, dirs.tmp);
+		stageViewer(dirs.tmp);
+		stageWrapper(dirs.tmp);
 
-server.close();
+		// 5. Одноразовый сервер
+		const server = await startStaticServer(dirs.tmp);
+		try {
+			// 6. Снимки
+			await shoot(server.port, dirs.profile, "panel-1024x768.png", "/");
+			await shoot(
+				server.port,
+				dirs.profile,
+				"panel-rules-1024x768.png",
+				"/?scroll=1",
+			);
+		} finally {
+			await server.close();
+		}
+	} finally {
+		dirs.cleanup();
+	}
+	console.log("Done: screenshots in assets/screenshots/ (server stopped)");
+}
+
 try {
-	fs.rmSync(STAGING, { recursive: true, force: true });
-	fs.rmSync(PROFILE, { recursive: true, force: true });
-} catch {
-	// папки профиля могут быть ненадолго заняты Chrome — не критично
+	await main();
+} catch (e) {
+	fail(e instanceof Error ? e.message : String(e));
 }
-console.log(`Готово: скриншоты в assets/screenshots/ (сервер остановлен)`);
-process.exit(0);

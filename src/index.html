@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>DocPanel — Getting Started</title>
+		<style>
+			:root {
+				--bg: #0e0e10;
+				--panel: #1f1f23;
+				--border: #3a3a3d;
+				--text: #efeff1;
+				--muted: #adadb8;
+				--accent: #9147ff;
+				--ok: #00f593;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				background: var(--bg);
+				color: var(--text);
+				font-family:
+					system-ui,
+					-apple-system,
+					"Segoe UI",
+					Roboto,
+					sans-serif;
+				line-height: 1.6;
+			}
+			main {
+				max-width: 780px;
+				margin: 0 auto;
+				padding: 40px 20px 80px;
+			}
+			h1 {
+				font-size: 2em;
+				margin: 0 0 4px;
+			}
+			h1 .accent {
+				color: var(--accent);
+			}
+			.tagline {
+				color: var(--muted);
+				margin: 0 0 32px;
+			}
+			h2 {
+				margin-top: 40px;
+				font-size: 1.3em;
+				border-bottom: 1px solid var(--border);
+				padding-bottom: 6px;
+			}
+			code {
+				background: var(--panel);
+				border: 1px solid var(--border);
+				border-radius: 4px;
+				padding: 1px 6px;
+				font-size: 0.9em;
+			}
+			pre {
+				background: var(--panel);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 14px 16px;
+				overflow-x: auto;
+			}
+			pre code {
+				background: none;
+				border: 0;
+				padding: 0;
+			}
+			ol li,
+			ul li {
+				margin: 6px 0;
+			}
+			.note {
+				border-left: 3px solid var(--accent);
+				background: var(--panel);
+				padding: 10px 14px;
+				border-radius: 0 8px 8px 0;
+				margin: 16px 0;
+			}
+			.note.ok {
+				border-color: var(--ok);
+			}
+			table {
+				border-collapse: collapse;
+				width: 100%;
+				margin: 12px 0;
+			}
+			th,
+			td {
+				border: 1px solid var(--border);
+				padding: 8px 12px;
+				text-align: left;
+				font-size: 0.95em;
+			}
+			th {
+				background: var(--panel);
+			}
+			a {
+				color: var(--accent);
+			}
+			.muted {
+				color: var(--muted);
+				font-size: 0.9em;
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<h1>Doc<span class="accent">Panel</span></h1>
+			<p class="tagline">
+				A panel on your channel with multiple pages: about, rules, FAQ, schedule
+				— viewers flip through them with ‹ › arrows.
+			</p>
+
+			<h2>How it works</h2>
+			<p>
+				Your pages are plain <code>.md</code> (Markdown) text files plus a
+				single list file <code>index.json</code>. You put them online (for
+				example, on GitHub), and the extension loads them directly and shows
+				them on the panel.
+			</p>
+			<div class="note ok">
+				<strong>The key part:</strong> to change text on the panel, just edit
+				the <code>.md</code> file. Nothing to reinstall, no re-approval from
+				Twitch needed.
+			</div>
+
+			<h2>Set up in 5 minutes</h2>
+			<ol>
+				<li>
+					<strong>Create your pages.</strong> Each document is a
+					<code>.md</code> file. Start the file with a title:
+
+					<pre><code>---
+title: About my channel
+---
+
+Hi! I stream on Tuesdays...</code></pre>
+				</li>
+				<li>
+					<strong>Make a list.</strong> Create an <code>index.json</code> file —
+					it tells the panel which pages to show and in what order:
+
+					<pre><code>[
+  { "id": "about", "title": "About", "url": "about.md" },
+  { "id": "rules", "title": "Rules", "url": "rules.md" },
+  { "id": "faq", "title": "FAQ", "url": "faq.md" }
+]</code></pre>
+
+					<p class="muted">
+						<code>id</code> — any unique word, <code>title</code> — the name
+						shown on the arrows, <code>url</code> — file name next to
+						index.json.
+					</p>
+					<p class="muted">
+						Don't want to write index.json by hand? There's an experimental tool
+						that generates it from your <code>.md</code> files automatically
+						(reading titles and page order from the file headers) —
+						<code>builder/build.ts</code> in the extension repo. Manual editing
+						works just fine too.
+					</p>
+				</li>
+				<li>
+					<strong>Put it all online.</strong> The easiest way is a public GitHub
+					repository: upload your <code>.md</code> files and
+					<code>index.json</code> there. Once uploaded, the files become
+					available through a link like this:
+
+					<pre><code>https://cdn.jsdelivr.net/gh/YOUR_NAME/your-repo@main/index.json</code></pre>
+
+					<p class="muted">
+						Replace with your GitHub username and repository name. Test the
+						link: open it in a browser — you should see the index.json text.
+					</p>
+				</li>
+				<li>
+					<strong>Connect it to the panel.</strong> On your channel: Extension
+					Manager → Configure for DocPanel → paste the link to
+					<code>index.json</code> → "Load list" → arrange the order, hide what
+					you don't need → <strong>"Save"</strong>. Done — the panel is live.
+				</li>
+			</ol>
+
+			<h2>Updating</h2>
+			<p>
+				Edit a <code>.md</code> file → save → changes appear on the panel
+				automatically, within a few hours (due to caching, see below). Page
+				order and hiding are changed in the control panel (Configure) without
+				touching the files.
+			</p>
+
+			<h2>Why changes aren't instant: caching</h2>
+			<p>
+				Files are served through the jsDelivr CDN, which caches them — that's
+				why the panel loads fast, but not instantly after you edit. What you put
+				after <code>@</code> in the link controls the speed:
+			</p>
+			<table>
+				<tr>
+					<th>What's in the link</th>
+					<th>Updates</th>
+					<th>When to use</th>
+				</tr>
+				<tr>
+					<td><code>@main</code></td>
+					<td>within a few hours</td>
+					<td>Normal mode — edit text, it arrives on its own</td>
+				</tr>
+				<tr>
+					<td><code>@v2</code> (a version tag)</td>
+					<td>never, frozen forever</td>
+					<td>Lock a page as-is</td>
+				</tr>
+			</table>
+			<div class="note">
+				Saved your edits but the panel is still old? Wait a couple of hours, or
+				purge the cache manually at
+				<a href="https://www.jsdelivr.com/tools/purge"
+					>jsdelivr.com/tools/purge</a
+				>
+				— paste your link there and hit Purge.
+			</div>
+			<div class="note ok">
+				<strong>Tip:</strong> to make rare important edits (say, rewritten
+				rules) appear instantly: publish them and change <code>@main</code> to
+				<code>@v2</code>, <code>@v3</code>… in the link in the control panel —
+				the panel switches immediately.
+			</div>
+
+			<h2>What Markdown supports</h2>
+			<p>
+				Headings (<code>##</code>), paragraphs, <strong>bold</strong>,
+				<em>italic</em>, ~~strikethrough~~, <code>code</code>, lists (including
+				checkboxes <code>- [ ]</code>), links, images, quotes
+				(<code>&gt;</code>), divider <code>---</code>.
+			</p>
+			<p class="muted">
+				HTML, tables, and code blocks are skipped by the panel — just don't use
+				them. Reference images in text with relative paths
+				(<code>![](pics/me.png)</code>) and keep them next to the
+				<code>.md</code> file. Images must be https.
+			</p>
+		</main>
+	</body>
+</html>

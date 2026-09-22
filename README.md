@@ -1,9 +1,19 @@
 # DocPanel
 
 Twitch Panel Extension: одна панель (318×500), внутри — несколько документов.
-Контент — **обычные .md файлы в отдельном репозитории** (GitHub, Gitea — любой
-хостинг): расширение грузит их напрямую и рендерит само. Без бэкендов, без
-конвертации, без ревью.
+Контент — **обычные .md файлы в отдельном публичном репозитории на GitHub**:
+расширение грузит их напрямую через **jsDelivr** и рендерит само. Без бэкендов,
+без конвертации, без ревью Twitch при обновлении контента.
+
+- **Инструкция для пользователей** (контент-репо, jsDelivr, кеш, версии):
+  [src/index.html](src/index.html) — она же деплоится на GitHub Pages как
+  лендинг.
+- Само расширение при каждом push в `main` собирается workflow'ом
+  [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) и деплоится на
+  GitHub Pages: viewer и config можно тестить в Twitch по Base URI
+  `https://ku6epxboctuk.github.io/twitch-doc-panel/` (viewer.html +
+  config.html), без загрузки zip в консоль. Требуется включить Pages → Source:
+  GitHub Actions.
 
 ## Как это устроено
 
@@ -94,10 +104,34 @@ build-docs docs       # docs/*.md → docs/index.json
 
 ## Деплой расширения
 
-`doc-panel.zip` (собирается `npm run build`) — загрузить в консоль Twitch;
-альтернатива (nginx) — содержимое `dist/` (два html + assets). Base URI в
-консоли Twitch = URL этой папки со слэшем на конце. Контент расширению не нужен
-— он грузится с репозитория контента.
+**GitHub Pages (основной путь):** push в `main` → workflow собирает `dist/` и
+деплоит на Pages автоматически. В консоли Twitch: Base URI =
+`https://ku6epxboctuk.github.io/twitch-doc-panel/`, Panel Viewer Path
+`viewer.html`, Panel Config Path `config.html`. В CSP версии добавить
+`ku6epxboctuk.github.io` и `cdn.jsdelivr.net` (connect-src, img-src).
+
+**Альтернативы:** `doc-panel.zip` (собирается `npm run build`) загрузить в
+консоль Twitch — или содержимое `dist/` (два html + assets) на своём nginx, Base
+URI = URL папки со слэшем на конце. Контент расширению не нужен — он грузится с
+репозитория контента через jsDelivr.
+
+### Контент через jsDelivr
+
+Рекомендуемая схема для стримеров: публичный GitHub-репо с `.md` + `index.json`,
+ссылка в панели управления вида
+
+```txt
+https://cdn.jsdelivr.net/gh/<user>/<repo>@main/index.json
+```
+
+- `@main` — jsDelivr кеширует ветку ~12 часов (браузер — до 7 дней): правки
+  контента доезжают за несколько часов, пересборка не нужна.
+- `@<тег>` или `@<commit-hash>` — постоянный кеш: мгновенное переключение версии
+  = новый тег + новая ссылка в конфиге.
+- Сброс кеша вручную:
+  [https://www.jsdelivr.com/tools/purge](https://www.jsdelivr.com/tools/purge)
+
+Полная инструкция — [src/index.html](src/index.html).
 
 ## Dev-аудит верстки (без Twitch)
 

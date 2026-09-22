@@ -4,17 +4,17 @@
 		saveBroadcasterConfig,
 	} from "../shared/twitch.ts";
 	import { isContentUrl, initialIndexUrl } from "../shared/content.ts";
-	import type { BroadcasterConfig, DocEntry } from "../shared/types.ts";
-
-	interface ConfigRow {
-		id: string;
-		title: string;
-		hidden: boolean;
-	}
+	import {
+		buildConfigRows,
+		fetchDocsIndex,
+		moveRow,
+		toBroadcasterConfig,
+	} from "../shared/docs.ts";
+	import type { BroadcasterConfig, ConfigRow } from "../shared/types.ts";
 
 	type Status = "idle" | "loading" | "ready" | "error";
 
-	// Конфиг приходит асинхронно — заполняем поле, когда доедет.
+	// The config arrives asynchronously — fill the field when it does.
 	let savedCfg = $state<Partial<BroadcasterConfig>>({});
 
 	let indexUrl = $state("");
@@ -39,58 +39,38 @@
 		error = "";
 		const url = indexUrl.trim();
 		if (!url) {
-			error = "Укажи ссылку на index.json";
+			error = "Set the index.json URL";
 			return;
 		}
 		if (!isContentUrl(url)) {
-			error = "Ссылка должна быть http(s) URL или относительным путём";
+			error = "The URL must be an http(s) URL or a relative path";
 			return;
 		}
 		status = "loading";
-		try {
-			const res = await fetch(url);
-			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			const raw: unknown = await res.json();
-			if (!Array.isArray(raw)) throw new Error("ожидался массив документов");
-			const index = raw as DocEntry[];
-			const hidden = new Set(savedCfg.hidden ?? []);
-			const order = new Map((savedCfg.order ?? []).map((id, i) => [id, i]));
-			list = index
-				.filter((d) => !d.hidden)
-				.map((d) => ({ id: d.id, title: d.title, hidden: hidden.has(d.id) }))
-				.sort(
-					(a, b) =>
-						(order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity),
-				);
-			status = "ready";
-		} catch (e) {
-			console.error(e);
-			error = String((e as Error).message ?? e);
+		const r = await fetchDocsIndex(url);
+		if (!r.ok) {
+			error = r.message;
 			status = "error";
+			return;
 		}
+		list = buildConfigRows(r.entries, savedCfg);
+		status = "ready";
 	}
 
 	function move(i: number, dir: number): void {
-		const j = i + dir;
-		if (j < 0 || j >= list.length) return;
-		[list[i], list[j]] = [list[j], list[i]];
+		list = moveRow(list, i, dir);
 	}
 
 	function save(): void {
-		savedOk = saveBroadcasterConfig({
-			v: 1,
-			indexUrl: indexUrl.trim(),
-			hidden: list.filter((d) => d.hidden).map((d) => d.id),
-			order: list.map((d) => d.id),
-		});
+		savedOk = saveBroadcasterConfig(toBroadcasterConfig(indexUrl.trim(), list));
 	}
 </script>
 
 <div class="config">
-	<h1>Панель управления</h1>
+	<h1>Configuration</h1>
 
 	<label class="field">
-		<span class="label">Ссылка на index.json</span>
+		<span class="label">index.json URL</span>
 		<input
 			type="text"
 			bind:value={indexUrl}
@@ -99,13 +79,13 @@
 		/>
 	</label>
 	<p class="muted hint">
-		Абсолютный http(s) URL (например, GitHub Pages или jsDelivr) или путь рядом
-		с виджетом.
+		An absolute http(s) URL (e.g. GitHub Pages or jsDelivr) or a path next to
+		the widget.
 	</p>
-	<button onclick={load}>Загрузить список</button>
+	<button onclick={load}>Load list</button>
 
 	{#if status === "loading"}
-		<p class="muted">Загрузка…</p>
+		<p class="muted">Loading…</p>
 	{:else if status === "error"}
 		<p class="err">{error}</p>
 	{:else if status === "ready"}
@@ -113,28 +93,28 @@
 			<div class="row">
 				<span class="title">{doc.title}</span>
 				<span class="controls">
-					<button title="Выше" onclick={() => move(i, -1)} disabled={i === 0}
+					<button title="Move up" onclick={() => move(i, -1)} disabled={i === 0}
 						>↑</button
 					>
 					<button
-						title="Ниже"
+						title="Move down"
 						onclick={() => move(i, 1)}
 						disabled={i === list.length - 1}>↓</button
 					>
 					<label>
 						<input type="checkbox" bind:checked={doc.hidden} />
-						скрыть
+						hide
 					</label>
 				</span>
 			</div>
 		{:else}
-			<p class="muted">Список пуст: добавь .md файлы в репозиторий контента.</p>
+			<p class="muted">The list is empty: add .md files to the content repo.</p>
 		{/each}
 
 		<div class="save">
-			<button onclick={save}>Сохранить</button>
+			<button onclick={save}>Save</button>
 			{#if savedOk}
-				<span class="ok">Сохранено</span>
+				<span class="ok">Saved</span>
 			{/if}
 		</div>
 	{:else if error}

@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { onContext, onBroadcasterConfig } from "../shared/twitch.ts";
 	import { resolveIndexUrl } from "../shared/content.ts";
-	import { mdToBlocks, type MdAst, type MdBlock } from "../shared/md.ts";
+	import { mdToBlocks, absolutizeUrls, type MdBlock } from "../shared/md.ts";
+	import { applyConfig, fetchDocsIndex } from "../shared/docs.ts";
 	import type { BroadcasterConfig, DocEntry, Theme } from "../shared/types.ts";
 	import DocRenderer from "../shared/DocRenderer.svelte";
 
-	// ?theme=light|dark — ручное перекрытие темы (аудит тем в dev-обёртке);
-	// без параметра тема приходит из Twitch (локально — заглушка dark).
+	// ?theme=light|dark — manual theme override (theme audit in the dev wrapper);
+	// without the parameter the theme comes from Twitch (locally — dark stub).
 	const qpTheme = new URLSearchParams(globalThis.location?.search ?? "").get(
 		"theme",
 	);
@@ -17,8 +18,9 @@
 		if (!qpTheme && ctx.theme) theme = ctx.theme;
 	});
 
-	// Конфиг канала: {v:1, indexUrl, hidden:[], order:[]} — приходит асинхронно
-	// и меняется при сохранении в config-вью; подписка ловит оба случая.
+	// Channel config: {v:1, indexUrl, hidden:[], order:[]} — arrives
+	// asynchronously and changes when saved in the config view; the
+	// subscription catches both cases.
 	let cfg: BroadcasterConfig | null = null;
 	let lastCfgJson = "";
 
@@ -37,12 +39,13 @@
 	let docError = $state("");
 	let lastIndexUrl = "";
 
-	// ?index=<url> — ручное переопределение (тесты, скриншоты): грузим сразу,
-	// не дожидаясь конфиг-сегмента. Фильтр хостов делает CSP версии.
+	// ?index=<url> — manual override (tests, screenshots): load right away,
+	// without waiting for the config segment. Host filtering is done by the
+	// version CSP.
 	const qp = new URLSearchParams(globalThis.location?.search ?? "").get(
 		"index",
 	);
-	// ?doc=<id> — открыть документ по id (скриншоты/аудит): демонстрация пейджера.
+	// ?doc=<id> — open a document by id (screenshots/audit): shows the pager.
 	const qpDoc = new URLSearchParams(globalThis.location?.search ?? "").get(
 		"doc",
 	);
@@ -56,7 +59,7 @@
 			cfg = c;
 			const r = resolveIndexUrl(c);
 			if (r.error) {
-				status = r.error; // 'bad-url' | 'need-config' — совпадает со статусами вьюера
+				status = r.error; // 'bad-url' | 'need-config' — matches viewer statuses
 				loadError = r.detail;
 			}
 			if (r.url) loadIndex(r.url);
@@ -67,68 +70,22 @@
 		lastIndexUrl = indexUrl;
 		status = "loading";
 		loadError = "";
-		try {
-			const res = await fetch(indexUrl);
-			if (!res.ok) throw new Error(`index.json: HTTP ${res.status}`);
-			// res.url учитывает редиректы: относительные пути — от фактического адреса индекса
-			const base = new URL(".", res.url).href;
-			const raw: unknown = await res.json();
-			if (!Array.isArray(raw)) throw new Error("index.json: ожидался массив");
-			let list: DocEntry[] = raw as DocEntry[];
-			list = list.map((d) => ({
-				...d,
-				url: new URL(d.url, base).href,
-				banner: d.banner ? new URL(d.banner, base).href : null,
-			}));
-			if (cfg) {
-				const hidden = new Set(cfg.hidden ?? []);
-				const order = new Map((cfg.order ?? []).map((id, i) => [id, i]));
-				list = list.filter((d) => !d.hidden && !hidden.has(d.id));
-				list.sort(
-					(a, b) =>
-						(order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity),
-				);
-			}
-			docs = list;
-			if (!list.length) {
-				status = "empty";
-				return;
-			}
-			status = "ready";
-			const idx = qpDoc ? list.findIndex((d) => d.id === qpDoc) : 0;
-			await loadDoc(idx >= 0 ? idx : 0);
-		} catch (e) {
-			console.error(e);
-			loadError = String((e as Error).message ?? e);
+		const r = await fetchDocsIndex(indexUrl);
+		if (!r.ok) {
+			loadError = r.message;
 			status = "error";
+			return;
 		}
-	}
-
-	// Относительные пути картинок/ссылок из .md резолвим от адреса самого файла.
-	// Рекурсивно по всем контейнерам (p, заголовки, списки, li, blockquote,
-	// em/strong/del) — абсолютным становится href каждой картинки и ссылки.
-	// Тип узла — «сырой» MdAst: строка или массив (узел или items списка),
-	// форма проверяется в рантайме.
-	function absolutize(n: MdAst, base: string): MdAst {
-		if (typeof n === "string") return n;
-		const [tag, ...rest] = n;
-		if (tag === "img" || tag === "a") {
-			const href = rest[0];
-			if (typeof href === "string") {
-				const abs = /^https?:\/\//i.test(href)
-					? href
-					: new URL(href, base).href;
-				return [tag, abs, ...rest.slice(1)];
-			}
-			return n;
+		let list: DocEntry[] = r.entries;
+		if (cfg) list = applyConfig(list, cfg);
+		docs = list;
+		if (!list.length) {
+			status = "empty";
+			return;
 		}
-		if (tag === "ul" || tag === "ol") {
-			const items = rest[0];
-			return Array.isArray(items)
-				? [tag, items.map((li) => absolutize(li, base))]
-				: n;
-		}
-		return [tag, ...rest.map((x) => absolutize(x, base))];
+		status = "ready";
+		const idx = qpDoc ? list.findIndex((d) => d.id === qpDoc) : 0;
+		await loadDoc(idx >= 0 ? idx : 0);
 	}
 
 	async function loadDoc(i: number): Promise<void> {
@@ -140,7 +97,7 @@
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const docBase = new URL(".", res.url).href;
 			const blocks = mdToBlocks(await res.text()).map(
-				(b) => absolutize(b, docBase) as MdBlock,
+				(b) => absolutizeUrls(b, docBase) as MdBlock,
 			);
 			doc = { title: docs[i].title, blocks };
 		} catch (e) {
@@ -149,7 +106,7 @@
 		}
 	}
 
-	// --- Оверлей-скроллбар: полупрозрачный, поверх контента, виден только при скролле ---
+	// --- Overlay scrollbar: translucent, on top of the content, visible only while scrolling ---
 	let mainEl = $state<HTMLElement | null>(null);
 	let contentEl = $state<HTMLElement | null>(null);
 	let thumb = $state({ visible: false, top: 0, height: 0 });
@@ -181,7 +138,7 @@
 		}, 700);
 	}
 
-	// Пересчёт при изменении размеров (смена документа, загрузка картинок)
+	// Recalculate on size changes (document switch, image loading)
 	const demoScroll = new URLSearchParams(globalThis.location?.search ?? "").has(
 		"demoScroll",
 	);
@@ -191,8 +148,8 @@
 		if (!el || !content) return;
 		const ro = new ResizeObserver(() => {
 			updateThumb();
-			// Демо-кадр для скриншотов: прокручиваем контент, чтобы ползунок и тени
-			// попали в кадр (включается параметром ?demoScroll=1).
+			// Demo frame for screenshots: scroll the content so the thumb and
+			// shadows are in frame (enabled by ?demoScroll=1).
 			if (
 				demoScroll &&
 				el.scrollHeight > el.clientHeight &&
@@ -216,25 +173,25 @@
 
 <div class="panel" data-theme={theme}>
 	{#if status === "loading"}
-		<p class="muted center">Загрузка…</p>
+		<p class="muted center">Loading…</p>
 	{:else if status === "need-config"}
-		<p class="center">Ссылка на контент не задана.</p>
+		<p class="center">No content URL configured.</p>
 		<p class="muted center">
-			Открой панель управления расширением и укажи ссылку на index.json.
+			Open the extension config panel and set the index.json URL.
 		</p>
 	{:else if status === "bad-url"}
 		<p class="center">
-			Ссылка на контент должна быть http(s) URL или относительным путём.
+			The content URL must be an http(s) URL or a relative path.
 		</p>
 		<p class="muted center">{loadError}</p>
 	{:else if status === "error"}
-		<p class="center">Не удалось загрузить документы.</p>
+		<p class="center">Failed to load documents.</p>
 		<p class="muted center">{loadError}</p>
 		<p class="center">
-			<button onclick={() => loadIndex(lastIndexUrl)}>Повторить</button>
+			<button onclick={() => loadIndex(lastIndexUrl)}>Retry</button>
 		</p>
 	{:else if status === "empty"}
-		<p class="muted center">Документов пока нет.</p>
+		<p class="muted center">No documents yet.</p>
 	{:else}
 		{#if docs[current]?.banner}
 			<img
@@ -250,11 +207,11 @@
 						<h1 class="title">{doc?.title ?? docs[current].title}</h1>
 					{/if}
 					{#if docError}
-						<p class="muted">Не удалось загрузить документ ({docError}).</p>
+						<p class="muted">Failed to load the document ({docError}).</p>
 					{:else if doc}
 						<DocRenderer nodes={doc.blocks} />
 					{:else}
-						<p class="muted">Загрузка…</p>
+						<p class="muted">Loading…</p>
 					{/if}
 				</div>
 			</main>
@@ -272,7 +229,7 @@
 				<button
 					onclick={prev}
 					disabled={current === 0}
-					aria-label="Предыдущий документ">‹</button
+					aria-label="Previous document">‹</button
 				>
 				<span class="doc-title" title={docs[current]?.title}
 					>{docs[current]?.title}</span
@@ -280,7 +237,7 @@
 				<button
 					onclick={next}
 					disabled={current === docs.length - 1}
-					aria-label="Следующий документ">›</button
+					aria-label="Next document">›</button
 				>
 			</nav>
 		{/if}
@@ -295,7 +252,7 @@
 		box-sizing: border-box;
 		padding: 0;
 		gap: 8px;
-		/* Тема приходит из Twitch (onContext) */
+		/* Theme comes from Twitch (onContext) */
 		--text: #efeff1;
 		--muted: #adadb8;
 		--border: #3a3a3d;
@@ -332,13 +289,13 @@
 		min-height: 0;
 		padding: 10px 12px;
 		border-radius: 8px;
-		/* Нативный скроллбар скрыт полностью — вместо него оверлей-ползунок .sb-thumb */
+		/* The native scrollbar is fully hidden — replaced by the overlay thumb .sb-thumb */
 		scrollbar-width: none;
 		-ms-overflow-style: none;
 		overscroll-behavior: contain;
-		/* Градиентные тени: у края контент растворяется в цвет подложки
-       (на тёмной теме чёрная тень не видна, а растворение текста — видно).
-       Локальные слои (local) маскируют растворение у самого края. */
+		/* Gradient shadows: at the edge the content dissolves into the backdrop
+       color (on the dark theme a black shadow is invisible, but text fading
+       is). Local layers (local) mask the fading right at the edge. */
 		background:
 			linear-gradient(var(--surface) 30%, var(--surface-0)),
 			linear-gradient(var(--surface-0), var(--surface) 70%) 0 100%,

@@ -151,3 +151,29 @@ function inline(tokens: Token[] | undefined, onSkip?: SkipFn): MdInline[] {
 }
 
 const norm = (s: string): string => s.replace(/\s+/g, " ");
+
+// Relative paths of images/links inside .md are resolved against the address
+// of the .md file itself. Recursively through all containers (p, headings,
+// lists, li, blockquote, em/strong/del) — the href of every image and link
+// becomes absolute.
+// The node type is the "raw" MdAst: a string or an array (a node or the items
+// of a list); the shape is checked at runtime.
+export function absolutizeUrls(n: MdAst, base: string): MdAst {
+	if (typeof n === "string") return n;
+	const [tag, ...rest] = n;
+	if (tag === "img" || tag === "a") {
+		const href = rest[0];
+		if (typeof href === "string") {
+			const abs = /^https?:\/\//i.test(href) ? href : new URL(href, base).href;
+			return [tag, abs, ...rest.slice(1)];
+		}
+		return n;
+	}
+	if (tag === "ul" || tag === "ol") {
+		const items = rest[0];
+		return Array.isArray(items)
+			? [tag, items.map((li) => absolutizeUrls(li, base))]
+			: n;
+	}
+	return [tag, ...rest.map((x) => absolutizeUrls(x, base))];
+}

@@ -1,34 +1,11 @@
 <script lang="ts">
-	// Рекурсивный рендерер мини-AST. Никакого {@html}: строка = текст
-	// (эскейпит Svelte), узел = [tag, ...rest]. Неизвестное — пропускаем с warning.
-	// Картинки — только https (http — только localhost: дев-режим и скриншоты).
+	// Recursive mini-AST renderer. No {@html}: a string = text (escaped by
+	// Svelte), a node = [tag, ...rest]. Unknown tags are skipped with a warning.
+	// Images — https only (http only for localhost: dev mode and screenshots).
 	import type { MdAst } from "./md.ts";
+	import { safeImg, safeLink } from "./md-sanitize.ts";
 
 	let { nodes = [] }: { nodes?: MdAst[] } = $props();
-
-	const LINK_RE = /^https?:\/\//i;
-
-	function safeImg(src: unknown): string | null {
-		if (typeof src !== "string") return null;
-		try {
-			const u = new URL(src);
-			// http разрешён только для localhost (дев-режим и скриншоты)
-			if (
-				u.protocol === "https:" ||
-				u.hostname === "localhost" ||
-				u.hostname === "127.0.0.1"
-			) {
-				return u.href;
-			}
-			return null;
-		} catch {
-			return null;
-		}
-	}
-
-	function safeLink(href: unknown): string | null {
-		return typeof href === "string" && LINK_RE.test(href) ? href : null;
-	}
 
 	function textOf(x: MdAst): string {
 		return typeof x === "string" ? x : "";
@@ -96,7 +73,7 @@
 				{#each rest as b}{@render node(b)}{/each}
 			</blockquote>
 		{:else}
-			{@const _warn = console.warn("DocRenderer: неизвестный узел", tag)}
+			{@const _warn = console.warn("DocRenderer: unknown node", tag)}
 		{/if}
 	{/if}
 {/snippet}

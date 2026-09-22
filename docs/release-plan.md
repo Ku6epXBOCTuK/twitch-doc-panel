@@ -1,4 +1,4 @@
-# План выкладывания `twitch-panel-bio` на Twitch
+# План выкладывания `doc-panel` на Twitch
 
 ## Фаза 0. Подготовка
 
@@ -18,7 +18,7 @@
      стримера.
    - `index.html` — ссылки на обе страницы (опц.).
 2. GitHub → Settings → Pages → **Deploy from a branch** → `main`, folder `/` →
-   Save. После этого сайт = `https://<owner>.github.io/twitch-multi-panel/`.
+   Save. После этого сайт = `https://<owner>.github.io/twitch-doc-panel/`.
    - URL для консоли: `…/legal/privacy.html` и `…/legal/tos.html`.
 
 ## Фаза 2. Hosted Test (в консоли Extensions)

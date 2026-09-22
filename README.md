@@ -1,4 +1,4 @@
-# twitch-panel-bio
+# DocPanel
 
 Twitch Panel Extension: одна панель (318×500), внутри — несколько документов.
 Контент — **обычные .md файлы в отдельном репозитории** (GitHub, Gitea — любой

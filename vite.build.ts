@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+import Icons from "unplugin-icons/vite";
 
 // Исходные html живут в src/, но Vite кладёт их в dist/ с сохранением пути
 // относительно root (dist/src/viewer.html), а base "./" считает ссылки на
@@ -31,7 +32,7 @@ function flattenHtml(): Plugin {
 // На выходе плоская структура (viewer.html, config.html, assets/),
 // готовая для zip без промежуточного merge.
 export default defineConfig({
-	plugins: [svelte(), flattenHtml()],
+	plugins: [svelte(), Icons({ compiler: "svelte" }), flattenHtml()],
 	base: "./",
 	build: {
 		outDir: "dist",

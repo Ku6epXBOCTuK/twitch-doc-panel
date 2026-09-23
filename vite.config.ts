@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+import Icons from "unplugin-icons/vite";
 import { buildIndex } from "./builder/build.ts";
 
 // HTTPS в dev — если в certs/ лежит сертификат от mkcert:
@@ -66,6 +67,6 @@ function devShell(): Plugin {
 
 // Dev-сервер: обслуживает /src/viewer.html и /src/config.html на одном origin.
 export default defineConfig({
-	plugins: [svelte(), devShell(), devContent()],
+	plugins: [svelte(), Icons({ compiler: "svelte" }), devShell(), devContent()],
 	server: { port: 8080, ...(https ? { https } : {}) },
 });

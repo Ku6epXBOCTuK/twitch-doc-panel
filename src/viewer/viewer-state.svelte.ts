@@ -28,15 +28,16 @@ export class ViewerState {
 	loadError = $state("");
 	doc = $state<LoadedDoc | null>(null);
 	docError = $state("");
+	duration = $state(10);
 
 	// Channel config: {v:1, indexUrl, hidden:[], order:[]} — arrives
 	// asynchronously and changes when saved in the config view; the
 	// subscription catches both cases.
-	private cfg: BroadcasterConfig | null = null;
-	private lastCfgJson = "";
-	private lastIndexUrl = "";
+	#cfg: BroadcasterConfig | null = null;
+	#lastCfgJson = "";
+	#lastIndexUrl = "";
 	// ?doc=<id> — open a document by id (screenshots/audit): shows the pager.
-	private qpDoc: string | null;
+	#qpDoc: string | null;
 
 	// ?index=<url> — manual override (tests, screenshots): load right away,
 	// without waiting for the config segment. Host filtering is done by the
@@ -45,21 +46,22 @@ export class ViewerState {
 	constructor() {
 		const search = globalThis.location?.search ?? "";
 		const qpIndex = new URLSearchParams(search).get("index");
-		this.qpDoc = new URLSearchParams(search).get("doc");
+		this.#qpDoc = new URLSearchParams(search).get("doc");
 		if (qpIndex) {
 			this.loadIndex(qpIndex);
 		} else {
-			onBroadcasterConfig((c) => {
-				const json = JSON.stringify(c ?? null);
-				if (json === this.lastCfgJson) return;
-				this.lastCfgJson = json;
-				this.cfg = c;
-				const r = resolveIndexUrl(c);
-				if (r.error) {
-					this.status = r.error; // 'bad-url' | 'need-config' — viewer statuses
-					this.loadError = r.detail;
+			onBroadcasterConfig((cfg) => {
+				const json = JSON.stringify(cfg ?? null);
+				if (json === this.#lastCfgJson) return;
+				this.#lastCfgJson = json;
+				this.#cfg = cfg;
+				this.duration = cfg?.duration ?? 10;
+				const res = resolveIndexUrl(cfg);
+				if (res.error) {
+					this.status = res.error; // 'bad-url' | 'need-config' — viewer statuses
+					this.loadError = res.detail;
 				}
-				if (r.url) this.loadIndex(r.url);
+				if (res.url) this.loadIndex(res.url);
 			});
 		}
 	}
@@ -69,24 +71,24 @@ export class ViewerState {
 	}
 
 	async loadIndex(indexUrl: string): Promise<void> {
-		this.lastIndexUrl = indexUrl;
+		this.#lastIndexUrl = indexUrl;
 		this.status = VIEWER_STATUS.LOADING;
 		this.loadError = "";
-		const r = await fetchDocsIndex(indexUrl);
-		if (!r.ok) {
-			this.loadError = r.message;
+		const res = await fetchDocsIndex(indexUrl);
+		if (!res.ok) {
+			this.loadError = res.message;
 			this.status = VIEWER_STATUS.ERROR;
 			return;
 		}
-		let list: DocEntry[] = r.entries;
-		if (this.cfg) list = applyConfig(list, this.cfg);
+		let list: DocEntry[] = res.entries;
+		if (this.#cfg) list = applyConfig(list, this.#cfg);
 		this.docs = list;
 		if (!list.length) {
 			this.status = VIEWER_STATUS.EMPTY;
 			return;
 		}
 		this.status = VIEWER_STATUS.READY;
-		const idx = this.qpDoc ? list.findIndex((d) => d.id === this.qpDoc) : 0;
+		const idx = this.#qpDoc ? list.findIndex((d) => d.id === this.#qpDoc) : 0;
 		await this.loadDoc(idx >= 0 ? idx : 0);
 	}
 
@@ -111,7 +113,7 @@ export class ViewerState {
 	}
 
 	retry = (): void => {
-		this.loadIndex(this.lastIndexUrl);
+		this.loadIndex(this.#lastIndexUrl);
 	};
 
 	prev = (): void => {

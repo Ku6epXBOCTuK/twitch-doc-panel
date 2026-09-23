@@ -87,11 +87,13 @@ export function moveRow(
 export function toBroadcasterConfig(
 	indexUrl: string,
 	list: ConfigRow[],
+	duration: number,
 ): BroadcasterConfig {
 	return {
 		v: 1,
 		indexUrl,
 		hidden: list.filter((d) => d.hidden).map((d) => d.id),
 		order: list.map((d) => d.id),
+		duration,
 	};
 }

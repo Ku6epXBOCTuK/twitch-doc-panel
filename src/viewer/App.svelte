@@ -33,6 +33,7 @@
 			currentTitle={viewer.currentDoc?.title ?? ""}
 			next={viewer.next}
 			prev={viewer.prev}
+			duration={viewer.duration}
 		/>
 	{:else}
 		<StatusMessage

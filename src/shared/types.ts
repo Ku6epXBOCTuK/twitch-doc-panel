@@ -31,6 +31,7 @@ export interface BroadcasterConfig {
 	indexUrl: string;
 	hidden: string[];
 	order: string[];
+	duration: number;
 }
 
 export const THEME_VARIANT = {

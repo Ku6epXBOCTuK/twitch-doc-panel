@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { ConfigState, STATUS } from "./config-state.svelte.ts";
 	import DocRow from "./DocRow.svelte";
+	import DurationField from "./DurationField.svelte";
 	import IndexUrlField from "./IndexUrlField.svelte";
 	import SaveBar from "./SaveBar.svelte";
 
@@ -11,6 +12,7 @@
 	<h1>Configuration</h1>
 
 	<IndexUrlField bind:indexUrl={state.indexUrl} load={state.load} />
+	<DurationField bind:duration={state.duration} />
 
 	{#if state.status === STATUS.LOADING}
 		<p class="muted">Loading…</p>
@@ -29,7 +31,7 @@
 		{:else}
 			<p class="muted">The list is empty: add .md files to the content repo.</p>
 		{/each}
-		<SaveBar save={state.save} savedOk={state.savedOk} />
+		<SaveBar save={() => state.save()} savedOk={state.savedOk} />
 	{:else if state.error}
 		<p class="err">{state.error}</p>
 	{/if}

@@ -23,17 +23,18 @@ export type Status = (typeof STATUS)[keyof typeof STATUS];
 
 export class ConfigState {
 	// The config arrives asynchronously — fill the field when it does.
-	private savedCfg: Partial<BroadcasterConfig> = {};
+	#savedCfg: Partial<BroadcasterConfig> = {};
 
 	indexUrl = $state("");
 	list = $state<ConfigRow[]>([]);
 	status = $state<Status>(STATUS.IDLE);
 	error = $state("");
 	savedOk = $state(false);
+	duration = $state(10);
 
 	constructor() {
 		onBroadcasterConfig((c) => {
-			this.savedCfg = c ?? {};
+			this.#savedCfg = c ?? {};
 			if (!this.indexUrl) {
 				const url = initialIndexUrl(c);
 				if (url) {
@@ -63,7 +64,8 @@ export class ConfigState {
 			this.status = STATUS.ERROR;
 			return;
 		}
-		this.list = buildConfigRows(r.entries, this.savedCfg);
+		this.list = buildConfigRows(r.entries, this.#savedCfg);
+		this.duration = this.#savedCfg.duration ?? 10;
 		this.status = STATUS.READY;
 	}
 
@@ -81,7 +83,7 @@ export class ConfigState {
 
 	save(): void {
 		this.savedOk = saveBroadcasterConfig(
-			toBroadcasterConfig(this.indexUrl.trim(), this.list),
+			toBroadcasterConfig(this.indexUrl.trim(), this.list, this.duration),
 		);
 	}
 }

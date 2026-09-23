@@ -5,9 +5,10 @@
 		next: () => void;
 		prev: () => void;
 		currentTitle: string;
+		duration: number;
 	}
 
-	let { total, current, next, prev, currentTitle }: Props = $props();
+	let { total, current, next, prev, currentTitle, duration }: Props = $props();
 </script>
 
 <nav class="pager">
@@ -27,7 +28,15 @@
 				</div>
 			</div>
 		</div>
-		<div class="pager-progress"></div>
+		{#key current}
+			<div
+				class="pager-progress"
+				onanimationend={() => {
+					if (duration !== 0) next();
+				}}
+				style="--duration: {duration}s"
+			></div>
+		{/key}
 	</div>
 	<button onclick={next} aria-label="Next document"> › </button>
 </nav>
@@ -92,7 +101,7 @@
 			var(--accent-2),
 			var(--accent-1)
 		);
-		animation: 10s linear 0s 1 normal running progress;
+		animation: var(--duration) linear 0s 1 normal running progress;
 		transform-origin: 0;
 	}
 	button {

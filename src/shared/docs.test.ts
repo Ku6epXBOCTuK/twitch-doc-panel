@@ -178,11 +178,12 @@ describe("toBroadcasterConfig", () => {
 			{ id: "b", title: "B", hidden: true },
 			{ id: "c", title: "C", hidden: false },
 		];
-		expect(toBroadcasterConfig("https://x/index.json", rows)).toEqual({
+		expect(toBroadcasterConfig("https://x/index.json", rows, 10)).toEqual({
 			v: 1,
 			indexUrl: "https://x/index.json",
 			hidden: ["b"],
 			order: ["a", "b", "c"],
+			duration: 10,
 		});
 	});
 });

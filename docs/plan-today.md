@@ -16,14 +16,14 @@
     хардкод в пользу `var(--*)`.
   - Проверка: audit page + `?theme=light`.
 
-- [ ] **Авто-переход по прогрессу** — `src/viewer/Pager.svelte` +
+- [x] **Авто-переход по прогрессу** — `src/viewer/Pager.svelte` +
       `src/viewer/viewer-state.svelte.ts`
   - Прогресс-бару добавить `key={current}` (перезапуск анимации на каждую
     страницу) и `onanimationend` → новый проп `onAutoNext` → `viewer.next()`.
   - Отключить при 1 документе / `duration === 0`; ручной prev/next перезапускает
     таймер.
 
-- [ ] **Длительность прогресса в конфиге** — `src/shared/types.ts`, `config`,
+- [x] **Длительность прогресса в конфиге** — `src/shared/types.ts`, `config`,
       `Pager.svelte`, `viewer-state.svelte.ts`
   - `duration?: number` (сек, по умолчанию 10, 0 = выкл) в `BroadcasterConfig`.
   - Длительность через inline `style="--duration: {duration}s"`.

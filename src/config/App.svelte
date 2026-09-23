@@ -4,16 +4,15 @@
 	import { ConfigState, STATUS } from "./config-state.svelte.ts";
 	import DocRow from "./DocRow.svelte";
 	import DurationField from "./DurationField.svelte";
+	import { default as Header } from "./Header.svelte";
 	import IndexUrlField from "./IndexUrlField.svelte";
-	import SaveBar from "./SaveBar.svelte";
 
 	const state = new ConfigState();
 	new ThemeState();
 </script>
 
 <div class="config">
-	<h1>Configuration</h1>
-
+	<Header save={() => state.save()} savedOk={state.savedOk} />
 	<IndexUrlField bind:indexUrl={state.indexUrl} load={state.load} />
 	<DurationField bind:duration={state.duration} />
 
@@ -34,7 +33,6 @@
 		{:else}
 			<p class="muted">The list is empty: add .md files to the content repo.</p>
 		{/each}
-		<SaveBar save={() => state.save()} savedOk={state.savedOk} />
 	{:else if state.error}
 		<p class="err">{state.error}</p>
 	{/if}
@@ -54,9 +52,6 @@
 		box-sizing: border-box;
 		padding: 16px;
 		max-width: 640px;
-	}
-	h1 {
-		font-size: 1.2em;
 	}
 	.muted {
 		color: var(--muted);

@@ -48,7 +48,7 @@
   - Убрать дубли `move/moveUp/moveDown`, оставить `move(i, dir: Direction)`.
   - Обновить тесты (`docs.test.ts`).
 
-- [ ] **Тема config-страницы** — `src/config/App.svelte`,
+- [x] **Тема config-страницы** — `src/config/App.svelte`,
       `IndexUrlField.svelte`, `DocRow.svelte`, `SaveBar.svelte`
   - Сейчас всё хардкод-тёмное (`#0e0e10` и т.д.).
   - Использовать `ThemeState` (как в viewer), вынести CSS-переменные в общий

@@ -22,6 +22,8 @@ body {
 	--button: #3a3a3d;
 	--success: #00f593;
 	--error: #ff8a8a;
+	--accent-1: #8142e6;
+	--accent-2: #764dc7;
 	color: var(--text);
 }
 [data-theme="light"] {

@@ -1,8 +1,9 @@
 {
 	"name": "twitch-doc-panel",
-	"private": true,
 	"type": "module",
 	"version": "0.2.0",
+	"author": "Ku6epXBOCTuK",
+	"license": "MIT",
 	"scripts": {
 		"dev": "vite",
 		"check": "svelte-check --tsconfig ./tsconfig.json",

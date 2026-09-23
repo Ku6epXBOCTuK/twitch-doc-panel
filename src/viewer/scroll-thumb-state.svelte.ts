@@ -6,15 +6,15 @@ export class ScrollThumbState {
 	top = $state(0);
 	height = $state(0);
 
-	private mainEl: HTMLElement | null = null;
-	private hideTimer: ReturnType<typeof setTimeout> | undefined;
+	#mainEl: HTMLElement | null = null;
+	#hideTimer: ReturnType<typeof setTimeout> | undefined;
 
 	bind(el: HTMLElement | null): void {
-		this.mainEl = el;
+		this.#mainEl = el;
 	}
 
-	private update(): void {
-		const el = this.mainEl;
+	#update(): void {
+		const el = this.#mainEl;
 		if (!el) return;
 		if (el.scrollHeight <= el.clientHeight + 1) {
 			this.visible = false;
@@ -31,10 +31,10 @@ export class ScrollThumbState {
 	}
 
 	onScroll(): void {
-		this.update();
+		this.#update();
 		this.visible = true;
-		clearTimeout(this.hideTimer);
-		this.hideTimer = setTimeout(() => {
+		clearTimeout(this.#hideTimer);
+		this.#hideTimer = setTimeout(() => {
 			this.visible = false;
 		}, 700);
 	}

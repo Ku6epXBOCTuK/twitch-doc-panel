@@ -57,7 +57,7 @@
 
 ## Общее
 
-- [ ] **# приватные поля** — `viewer-state.svelte.ts`, `config-state.svelte.ts`,
+- [x] **# приватные поля** — `viewer-state.svelte.ts`, `config-state.svelte.ts`,
       `scroll-thumb-state.svelte.ts`
   - viewer-state: `#cfg`, `#lastCfgJson`, `#lastIndexUrl`, `#qpDoc`
   - config-state: `#savedCfg`

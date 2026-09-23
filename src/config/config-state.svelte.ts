@@ -4,6 +4,7 @@ import {
 	fetchDocsIndex,
 	moveRow,
 	toBroadcasterConfig,
+	type Direction,
 } from "../shared/docs.ts";
 import {
 	onBroadcasterConfig,
@@ -69,16 +70,8 @@ export class ConfigState {
 		this.status = STATUS.READY;
 	}
 
-	move(i: number, dir: number): void {
-		this.list = moveRow(this.list, i, dir);
-	}
-
-	moveUp(idx: number): void {
-		this.list = moveRow(this.list, idx, -1);
-	}
-
-	moveDown(idx: number): void {
-		this.list = moveRow(this.list, idx, 1);
+	move(idx: number, direction: Direction): void {
+		this.list = moveRow(this.list, idx, direction);
 	}
 
 	save(): void {

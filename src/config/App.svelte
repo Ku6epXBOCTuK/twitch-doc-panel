@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DIRECTION } from "../shared/docs.ts";
 	import { ConfigState, STATUS } from "./config-state.svelte.ts";
 	import DocRow from "./DocRow.svelte";
 	import DurationField from "./DurationField.svelte";
@@ -25,8 +26,8 @@
 				bind:hidden={doc.hidden}
 				isFirst={idx === 0}
 				isLast={idx === state.list.length - 1}
-				moveUp={() => state.moveUp(idx)}
-				moveDown={() => state.moveDown(idx)}
+				moveUp={() => state.move(idx, DIRECTION.UP)}
+				moveDown={() => state.move(idx, DIRECTION.DOWN)}
 			/>
 		{:else}
 			<p class="muted">The list is empty: add .md files to the content repo.</p>

@@ -70,11 +70,17 @@ export function buildConfigRows(
 		);
 }
 
+export const DIRECTION = {
+	UP: -1,
+	DOWN: 1,
+} as const;
+export type Direction = (typeof DIRECTION)[keyof typeof DIRECTION];
+
 // Moves a row within a copy of the array (i swaps with i+dir).
 export function moveRow(
 	list: ConfigRow[],
 	i: number,
-	dir: number,
+	dir: Direction,
 ): ConfigRow[] {
 	const j = i + dir;
 	if (i < 0 || i >= list.length || j < 0 || j >= list.length) return list;

@@ -42,7 +42,7 @@
     `https://cdn.jsdelivr.net/gh/user/repo@main/index.json`, либо путь рядом с
     виджетом». Валидацию не трогаем.
 
-- [ ] **Direction enum** — `src/shared/docs.ts` +
+- [x] **Direction enum** — `src/shared/docs.ts` +
       `src/config/config-state.svelte.ts` + `src/config/App.svelte`
   - `DIRECTION = { UP: -1, DOWN: 1 }`, тип `Direction`.
   - Убрать дубли `move/moveUp/moveDown`, оставить `move(i, dir: Direction)`.

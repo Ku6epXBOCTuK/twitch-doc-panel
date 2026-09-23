@@ -37,7 +37,7 @@
 
 ## Config
 
-- [ ] **Описание jsDelivr** — `src/config/IndexUrlField.svelte:20`
+- [x] **Описание jsDelivr** — `src/config/IndexUrlField.svelte:20`
   - Только текст: «Контент грузится только через jsDelivr:
     `https://cdn.jsdelivr.net/gh/user/repo@main/index.json`, либо путь рядом с
     виджетом». Валидацию не трогаем.

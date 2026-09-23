@@ -17,8 +17,8 @@
 	/>
 </label>
 <p class="muted hint">
-	An absolute http(s) URL (e.g. GitHub Pages or jsDelivr) or a path next to the
-	widget.
+	URL to your index.json file:
+	<span>https://cdn.jsdelivr.net/gh/[user]/[repo]@main/index.json</span>
 </p>
 <button onclick={load}>Load list</button>
 

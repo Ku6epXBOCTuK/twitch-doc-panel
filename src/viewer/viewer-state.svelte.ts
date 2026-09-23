@@ -29,6 +29,8 @@ export class ViewerState {
 	doc = $state<LoadedDoc | null>(null);
 	docError = $state("");
 
+	// TODO: move to # private fields
+
 	// Channel config: {v:1, indexUrl, hidden:[], order:[]} — arrives
 	// asynchronously and changes when saved in the config view; the
 	// subscription catches both cases.

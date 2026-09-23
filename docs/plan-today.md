@@ -31,7 +31,7 @@
     проброс через `toBroadcasterConfig`/`buildConfigRows`/`save` и чтение в
     viewer-state.
 
-- [ ] **Циклический переход** — `src/viewer/viewer-state.svelte.ts`
+- [x] **Циклический переход** — `src/viewer/viewer-state.svelte.ts`
   - `next()` при last → 0; `prev()` при 0 → last (при `len > 1`).
   - Кнопки пейджера больше не дизейблить; авто-переход тоже зацикливается.
 

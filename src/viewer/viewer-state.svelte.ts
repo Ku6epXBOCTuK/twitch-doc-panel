@@ -117,10 +117,12 @@ export class ViewerState {
 	};
 
 	prev = (): void => {
-		if (this.current > 0) this.loadDoc(this.current - 1);
+		let prev = this.current > 0 ? this.current - 1 : this.docs.length - 1;
+		this.loadDoc(prev);
 	};
 
 	next = (): void => {
-		if (this.current < this.docs.length - 1) this.loadDoc(this.current + 1);
+		let next = this.current < this.docs.length - 1 ? this.current + 1 : 0;
+		this.loadDoc(next);
 	};
 }

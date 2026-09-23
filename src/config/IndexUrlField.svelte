@@ -5,8 +5,6 @@
 	}
 
 	let { indexUrl = $bindable(), load }: Props = $props();
-
-	// TODO: only jsDelivr, fix description
 </script>
 
 <label class="field">

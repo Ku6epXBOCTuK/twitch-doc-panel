@@ -71,8 +71,6 @@ export class ConfigState {
 		this.list = moveRow(this.list, i, dir);
 	}
 
-	// TODO: use direction enum instead of number
-
 	moveUp(idx: number): void {
 		this.list = moveRow(this.list, idx, -1);
 	}

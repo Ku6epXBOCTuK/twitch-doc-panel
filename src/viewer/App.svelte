@@ -7,8 +7,6 @@
 
 	const viewer = new ViewerState();
 	const theme = new ThemeState();
-
-	// TODO: viewer status need to be a guard for other fields - currentDoc and doc
 </script>
 
 <div class="panel" data-theme={theme.theme}>

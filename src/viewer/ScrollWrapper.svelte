@@ -42,8 +42,6 @@
 			if (demoScrollTimer) clearInterval(demoScrollTimer);
 		};
 	});
-
-	// TODO: fix scroll shadow
 </script>
 
 <div class="scrollwrap">

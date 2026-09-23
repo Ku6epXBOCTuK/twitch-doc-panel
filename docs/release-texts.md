@@ -7,51 +7,47 @@
 
 ### Name
 
-```
+```txt
 DocPanel
 ```
 
 ### Summary
 
-```
-Show multiple documents in one channel panel: about, rules, schedule, FAQ. Content is plain Markdown from your own repo — no backend, no coding.
+```txt
+Show multiple documents in one Twitch panel: about, rules, schedule, FAQ. Markdown from your repo — no backend, no coding.
 ```
 
 ### Description
 
-```
-DocPanel turns a single Twitch panel into a small channel notebook. Instead of one static panel, you get a pager with several documents that viewers flip through: about you, chat rules, schedule, FAQ, commands, links — anything you write.
+```txt
+DocPanel turns a Twitch panel into a small channel notebook: several documents (about, rules, schedule, FAQ, links) that viewers flip through with prev/next.
 
-All content lives in Markdown (.md) files in your own repository (GitHub, Gitea, any HTTP host). DocPanel loads them directly and renders them in the panel — no backend service, no build step, no extra cost.
+Content is plain Markdown in a public GitHub repository, loaded directly through the jsDelivr CDN (cdn.jsdelivr.net/gh/...) — no GitHub Pages, no backend, no build step, no cost. Other content hosts are not supported.
 
 How it works
-- Write documents as plain Markdown: headings, bold/italic, lists, checkboxes, quotes, links, images.
-- Run the included `build-docs` tool (or the builder from this repo) to generate `index.json`.
-- In the panel config (inside the Twitch Extension Manager), paste the URL to your `index.json` and save.
+1. Write docs as .md files: headings, lists, quotes, links, images.
+2. Run the included build-docs tool to generate index.json.
+3. In Extension Config paste your index.json URL and save.
+4. Pin a tag or HEAD: @main, @v1.0 or @commit-hash — change ref to switch versions.
+5. Push content updates to the repo; cache refreshes in a few hours (or use jsdelivr.com/tools/purge).
 
 Features
-- Multiple documents in one panel with prev/next pager.
-- Per-document banners for a styled header.
-- Order and hide documents from the config — no rebuild needed.
-- Fit for dark and light Twitch themes.
-- HTTPS content hosts only; relative image paths are supported.
-- No tracking, no ads. Viewer and channel IDs never leave the browser.
-
-Installation
-1. Open Extensions in your Twitch Dashboard and install DocPanel.
-2. Configure the panel: paste the URL of your content repository's `index.json`.
-3. Load the list, adjust order or hide documents, save. Done.
+- Multiple docs in one panel with a pager.
+- Per-document banners.
+- Reorder or hide docs from the config — no rebuild.
+- Dark and light Twitch themes.
+- No tracking; viewer and channel IDs never leave the browser.
 ```
 
 ### Категория
 
-```
+```txt
 Streamer Tools
 ```
 
 ### Walkthrough Guide (Status → при сабмите на ревью)
 
-```
+```txt
 Step 1. Open DocPanel config (Extension Manager → Configure).
 Step 2. Paste the URL to an index.json that lists the channel documents. If the URL is missing, the panel shows a "content URL not set" hint.
 Step 3. Click "Load list". The documents from index.json appear with their titles; the first one is shown in the panel preview.
@@ -63,7 +59,7 @@ Notes for the review team: this is a panel-only extension with no backend. It do
 
 ### Changelog (v0.2.0)
 
-```
+```txt
 v0.2.0 — Initial submission.
 - Panel viewer + config panel.
 - Markdown rendering (headings, text styles, lists, checkboxes, quotes, links, images; unsupported constructs are skipped).

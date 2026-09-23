@@ -7,9 +7,6 @@
 		currentTitle: string;
 	}
 
-	// TODO: auto change to next doc at progress bar
-	// TODO: setup time for progress bar animation
-	// TODO: cycle change docs - last + next = first and vice versa
 	let { total, current, next, prev, currentTitle }: Props = $props();
 </script>
 

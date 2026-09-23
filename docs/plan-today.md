@@ -2,7 +2,7 @@
 
 ## Viewer
 
-- [ ] **Отключить scroll shadow** — `src/viewer/ScrollWrapper.svelte`
+- [x] **Отключить scroll shadow** — `src/viewer/ScrollWrapper.svelte`
   - Убрать/закомментировать трюк с 4 фоновыми градиентами
     (`background-attachment` в `main`), пока вместо него не сделаем нормальные
     оверлеи (см. `plan-hard.md`, пункт 3).

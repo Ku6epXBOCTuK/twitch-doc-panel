@@ -58,6 +58,9 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		background-color: var(--surface);
+		color: var(--text);
+		font-weight: bold;
 	}
 	.pager-counter {
 		display: flex;
@@ -85,21 +88,21 @@
 		width: auto;
 		background: linear-gradient(
 			90deg,
-			rgb(66, 125, 138),
-			rgb(50, 77, 156),
-			rgb(63, 130, 145)
+			var(--accent-1),
+			var(--accent-2),
+			var(--accent-1)
 		);
 		animation: 10s linear 0s 1 normal running progress;
 		transform-origin: 0;
 	}
 	button {
-		color: var(--text);
+		color: #fff;
 		border: 0;
 		border-radius: 0px;
 		background: linear-gradient(
-			rgb(63, 130, 145) 0%,
-			rgb(44, 88, 108) 42%,
-			rgb(50, 77, 156) 100%
+			var(--accent-1),
+			var(--accent-2),
+			var(--accent-1)
 		);
 		width: 24px;
 		height: 24px;

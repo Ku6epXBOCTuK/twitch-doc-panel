@@ -28,6 +28,8 @@ body {
 	--surface-0: rgba(23, 23, 26, 0);
 	--panel: #222;
 	--thumb: rgba(173, 173, 184, 0.55);
+	--accent-1: #8142e6;
+	--accent-2: #764dc7;
 	color: var(--text);
 }
 [data-theme="light"] {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ThemeState } from "../shared/theme-state.svelte.ts";
+	import { THEME_VARIANT } from "../shared/types.ts";
 	import DocViewer from "./DocViewer.svelte";
 	import Pager from "./Pager.svelte";
 	import StatusMessage from "./StatusMessage.svelte";
@@ -7,9 +8,18 @@
 
 	const viewer = new ViewerState();
 	const theme = new ThemeState();
+
+	$effect(() => {
+		let currentTheme = theme.theme;
+		if (currentTheme === THEME_VARIANT.DARK) {
+			document.documentElement.setAttribute("data-theme", THEME_VARIANT.DARK);
+		} else {
+			document.documentElement.setAttribute("data-theme", THEME_VARIANT.LIGHT);
+		}
+	});
 </script>
 
-<div class="panel" data-theme={theme.theme}>
+<div class="panel">
 	{#if viewer.status === VIEWER_STATUS.READY}
 		<DocViewer
 			banner={viewer.currentDoc?.banner ?? null}

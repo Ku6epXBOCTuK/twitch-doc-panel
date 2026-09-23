@@ -9,7 +9,7 @@
   - Проверить визуально в dev-аудите: фон должен остаться чистым, без
     затемнённых кромок.
 
-- [ ] **Тёмная/светлая тема viewer** — `ThemeState`, `viewer.css`
+- [x] **Тёмная/светлая тема viewer** — `ThemeState`, `viewer.css`
   - `data-theme` вешать на `document.documentElement` (сейчас только на `.panel`
     → `color-scheme` и нативные контролы/скроллбары всегда тёмные).
   - Пройтись по компонентам (Pager, StatusMessage, DocRenderer) и прибрать

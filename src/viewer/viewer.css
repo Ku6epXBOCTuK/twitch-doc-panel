@@ -19,3 +19,24 @@ body {
 #app {
 	height: 100%;
 }
+:root {
+	--text: #efeff1;
+	--muted: #adadb8;
+	--border: #3a3a3d;
+	--link: #bf94ff;
+	--surface: #17171a;
+	--surface-0: rgba(23, 23, 26, 0);
+	--panel: #222;
+	--thumb: rgba(173, 173, 184, 0.55);
+	color: var(--text);
+}
+[data-theme="light"] {
+	--text: #0e0e10;
+	--muted: #53535f;
+	--border: #dcdde1;
+	--link: #6441a5;
+	--surface: #f7f7f8;
+	--surface-0: rgba(247, 247, 248, 0);
+	--panel: #ddd;
+	--thumb: rgba(83, 83, 95, 0.5);
+}

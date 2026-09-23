@@ -17,5 +17,9 @@ export class ThemeState {
 		onContext((ctx) => {
 			if (!qpTheme && ctx.theme) this.theme = ctx.theme;
 		});
+
+		$effect(() => {
+			document.documentElement.setAttribute("data-theme", this.theme);
+		});
 	}
 }

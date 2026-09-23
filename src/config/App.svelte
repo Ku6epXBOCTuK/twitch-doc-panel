@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { DIRECTION } from "../shared/docs.ts";
+	import { ThemeState } from "../shared/theme-state.svelte.ts";
 	import { ConfigState, STATUS } from "./config-state.svelte.ts";
 	import DocRow from "./DocRow.svelte";
 	import DurationField from "./DurationField.svelte";
@@ -7,6 +8,7 @@
 	import SaveBar from "./SaveBar.svelte";
 
 	const state = new ConfigState();
+	new ThemeState();
 </script>
 
 <div class="config">

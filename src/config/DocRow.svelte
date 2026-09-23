@@ -44,7 +44,7 @@
 		align-items: center;
 		gap: 8px;
 		padding: 8px 10px;
-		border: 1px solid #3a3a3d;
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		margin-top: 6px;
 	}
@@ -56,11 +56,11 @@
 	}
 	.controls label {
 		font-size: 0.85em;
-		color: #adadb8;
+		color: var(--muted);
 	}
 	button {
-		background: #3a3a3d;
-		color: #efeff1;
+		background: var(--button);
+		color: var(--text);
 		border: 0;
 		border-radius: 6px;
 		height: 30px;

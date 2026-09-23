@@ -16,11 +16,11 @@
 
 <style>
 	.ok {
-		color: #00f593;
+		color: var(--success);
 	}
 	button {
-		background: #3a3a3d;
-		color: #efeff1;
+		background: var(--button);
+		color: var(--text);
 		border: 0;
 		border-radius: 6px;
 		height: 30px;

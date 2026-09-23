@@ -48,14 +48,14 @@
 	label {
 		display: flex;
 		font-size: 0.85em;
-		color: #adadb8;
+		color: var(--muted);
 		margin-bottom: 4px;
 	}
 	input[type="number"] {
 		box-sizing: border-box;
-		background: #1f1f23;
-		color: #efeff1;
-		border: 1px solid #3a3a3d;
+		background: var(--surface);
+		color: var(--text);
+		border: 1px solid var(--border);
 		border-radius: 6px;
 		padding: 8px 10px;
 		font-size: 0.95em;

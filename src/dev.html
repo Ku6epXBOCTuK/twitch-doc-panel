@@ -152,10 +152,11 @@
 		</p>
 		<script>
 			const viewer = document.getElementById("viewer");
+			const config = document.getElementById("config");
 			const buttons = [...document.querySelectorAll(".toggle button")];
 			function setTheme(t) {
-				// ?theme= поддерживается вьювером (шаг 3): перекрытие темы для аудита.
 				viewer.src = "/src/viewer.html?theme=" + t;
+				config.src = "/src/config.html?theme=" + t;
 				for (const b of buttons)
 					b.classList.toggle("on", b.dataset.theme === t);
 			}

@@ -48,8 +48,8 @@
 			"Segoe UI",
 			Roboto,
 			sans-serif;
-		color: #efeff1;
-		background: #0e0e10;
+		color: var(--text);
+		background: var(--bg);
 		min-height: 100vh;
 		box-sizing: border-box;
 		padding: 16px;
@@ -59,9 +59,9 @@
 		font-size: 1.2em;
 	}
 	.muted {
-		color: #adadb8;
+		color: var(--muted);
 	}
 	.err {
-		color: #ff8a8a;
+		color: var(--error);
 	}
 </style>

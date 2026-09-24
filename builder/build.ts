@@ -2,7 +2,7 @@ import matter from "gray-matter";
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { mdToBlocks } from "../src/shared/md.ts";
 import {
 	DEFAULT_DOC_ORDER,
@@ -127,7 +127,9 @@ export async function buildIndex(
 // не при импорте buildIndex из vite.config.ts и т.п.
 try {
 	const isDirectRun =
-		import.meta.url === pathToFileURL(process.argv[1] ?? "").href;
+		process.argv[1] !== undefined &&
+		(await fs.realpath(process.argv[1])) ===
+			(await fs.realpath(fileURLToPath(import.meta.url)));
 	if (isDirectRun) {
 		const dir = process.argv[2] ?? process.cwd();
 		const out = process.argv[3] ?? path.join(dir, "index.json");
